@@ -1,53 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lv">
 
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<?= csrf_hash() ?>">
-  <title>CRUD App Using CI 4 and Ajax</title>
+  <title>Ziņu plūsma | AgriConnect</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="<?= base_url('css/agriconnect.css') ?>" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
   <script src="<?= base_url('js/jsonform.js') ?>"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 
-<body>
-
-<!-- Add New Post Modal -->
-<div class="modal fade" id="add_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add New Post</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-        <form id="add_post_form_container">
-          <div class="mb-3">
-            <label for="add_images_input" class="form-label">Upload Images</label>
-            <input type="file" class="form-control" id="add_images_input" multiple>
-            <div id="add_image_previews" class="d-flex flex-wrap gap-2 mt-2"></div>
-          </div>
-
-          <button type="submit" class="btn btn-primary w-100 mt-3">Add Post</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+<body class="ag-app">
 
 <!-- Edit Post Modal -->
 <div class="modal fade" id="edit_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Edit Post</h5>
+        <h5 class="modal-title">Rediģēt ierakstu</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
@@ -64,7 +42,7 @@
     <div class="modal-content">
 
       <div class="modal-header">
-        <h5 class="modal-title">Comments</h5>
+        <h5 class="modal-title">Komentāri</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
@@ -72,13 +50,13 @@
         <input type="hidden" id="comment_post_id">
 
         <div id="commentsList" class="mb-3">
-          Loading comments...
+          Ielādē komentārus...
         </div>
 
-        <textarea id="commentText" class="form-control mb-2" rows="3" placeholder="Write comment..."></textarea>
+        <textarea id="commentText" class="form-control mb-2" rows="3" placeholder="Uzraksti komentāru..."></textarea>
 
         <button class="btn btn-primary w-100" onclick="addComment()">
-          Add Comment
+          Pievienot komentāru
         </button>
       </div>
 
@@ -86,32 +64,56 @@
   </div>
 </div>
 
-<!-- Main Posts Page -->
-<div class="container">
-  <div class="row my-4">
-    <div class="col-lg-12">
-      <div class="card shadow">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <div class="text-secondary fw-bold fs-3">All Posts</div>
-
-          <div>
-            <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#add_post_modal">Add New Post</button>
-            <a href="<?= base_url('categories') ?>" class="btn btn-primary">Manage Categories</a>
-            <a href="<?= base_url('advertisements') ?>" class="btn btn-warning">Marketplace</a>
-            <a href="<?= base_url('forum') ?>" class="btn btn-info">Forum</a>
-            <a href="<?= base_url('profile') ?>" class="btn btn-secondary">Profile</a>
-            <a href="<?= base_url('auth/logout') ?>" class="btn btn-success">Logout</a>
-          </div>
-        </div>
-
-        <div class="card-body">
-          <div class="row" id="show_posts">
-            Posts will be dynamically loaded here
-          </div>
-        </div>
-      </div>
-    </div>
+<header class="ag-topbar">
+  <a class="ag-brand" href="<?= base_url('posts') ?>">AgriConnect</a>
+  <label class="ag-search" aria-label="Meklēt ziņu plūsmā">
+    <i data-lucide="search"></i>
+    <input type="search" placeholder="Meklēt...">
+  </label>
+  <div class="ag-top-actions">
+    <a class="ag-icon-btn" href="<?= base_url('posts') ?>" title="Paziņojumi"><i data-lucide="bell"></i></a>
+    <a class="ag-icon-btn" href="<?= base_url('profile') ?>" title="Profils"><i data-lucide="circle-user-round"></i></a>
   </div>
+</header>
+
+<div class="ag-shell">
+  <aside class="ag-sidebar">
+    <div class="ag-sidebar-title">
+      <h2>AgriConnect</h2>
+      <p>Mūsdienīgs lauksaimnieku tīkls</p>
+    </div>
+
+    <nav class="ag-nav" aria-label="Galvenā navigācija">
+      <a class="active" href="<?= base_url('posts') ?>"><i data-lucide="rss"></i> Ziņu plūsma</a>
+      <a href="<?= base_url('advertisements') ?>"><i data-lucide="store"></i> Sludinājumi</a>
+      <a href="<?= base_url('messages') ?>"><i data-lucide="message-circle"></i> Sarakstes</a>
+      <a href="<?= base_url('forum') ?>"><i data-lucide="messages-square"></i> Forums</a>
+      <?php if (session()->get('username') === 'admin'): ?>
+        <a href="<?= base_url('categories') ?>"><i data-lucide="tags"></i> Kategorijas</a>
+        <a href="<?= base_url('admin/users') ?>"><i data-lucide="users-round"></i> Lietotāji</a>
+      <?php endif; ?>
+    </nav>
+  </aside>
+
+  <main class="ag-main">
+    <div class="ag-feed-layout">
+      <section>
+        <div id="show_posts">
+          <div class="ag-card">Ieraksti tiks ielādēti šeit</div>
+        </div>
+      </section>
+
+      <aside class="ag-side-stack">
+        <div class="ag-card">
+          <h2 class="ag-section-title">Forumā</h2>
+          <div id="forumSidebar">
+            <div class="ag-muted">Ielādē diskusijas...</div>
+          </div>
+          <a class="btn btn-outline-secondary w-100 mt-3" href="<?= base_url('forum') ?>">Rādīt vairāk</a>
+        </div>
+      </aside>
+    </div>
+  </main>
 </div>
 
 <script>
@@ -123,6 +125,10 @@ function updateCsrfToken(token) {
   if (token) {
     $('meta[name="csrf-token"]').attr('content', token);
   }
+}
+
+function escapeHtml(value) {
+  return $('<div>').text(value ?? '').html();
 }
 
 let allSelectedFilesEdit = [];
@@ -144,7 +150,7 @@ function editPost(postId) {
 
         const existingImagesContainer = $(`
           <div class="mb-4">
-            <label class="form-label fw-bold">Existing Images</label>
+            <label class="form-label fw-bold">Esošie attēli</label>
             <div id="existing_images_container" class="d-flex flex-wrap gap-2"></div>
           </div>
         `);
@@ -155,7 +161,7 @@ function editPost(postId) {
           const imageElement = $(`
             <div class="d-inline-block text-center" style="max-width: 120px;">
               <img src="<?= base_url() ?>/${image}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;" alt="Image">
-              <button type="button" class="btn btn-danger btn-sm mt-1 delete-image-btn" data-image="${image}">Delete</button>
+              <button type="button" class="btn btn-danger btn-sm mt-1 delete-image-btn" data-image="${image}">Dzēst</button>
             </div>
           `);
 
@@ -171,7 +177,7 @@ function editPost(postId) {
 
         const newImagesContainer = $(`
           <div class="mb-4">
-            <label class="form-label fw-bold">New Images</label>
+            <label class="form-label fw-bold">Jauni attēli</label>
             <div id="new_images_container" class="d-flex flex-wrap gap-2"></div>
             <input type="file" class="form-control mt-3" id="new_images_input" multiple>
           </div>
@@ -190,8 +196,8 @@ function editPost(postId) {
             reader.onload = function (e) {
               const previewElement = $(`
                 <div class="d-inline-block text-center" style="max-width: 120px;">
-                  <img src="${e.target.result}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;" alt="New Image">
-                  <button type="button" class="btn btn-danger btn-sm mt-1 delete-edit-new-image-btn" data-index="${allSelectedFilesEdit.length - 1}">Delete</button>
+                  <img src="${e.target.result}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;" alt="Jauns attēls">
+                  <button type="button" class="btn btn-danger btn-sm mt-1 delete-edit-new-image-btn" data-index="${allSelectedFilesEdit.length - 1}">Dzēst</button>
                 </div>
               `);
 
@@ -216,15 +222,15 @@ function editPost(postId) {
 
         $('#edit_post_form_container').jsonForm({
           schema: {
-            title: { type: 'string', title: 'Post Title', required: true },
+            title: { type: 'string', title: 'Ieraksta virsraksts', required: true },
             category: {
               type: 'string',
-              title: 'Post Category',
+              title: 'Ieraksta kategorija',
               enum: categories.map(category => category.id),
               enumNames: categories.map(category => category.category_name),
               required: true
             },
-            body: { type: 'string', title: 'Post Body', required: true }
+            body: { type: 'string', title: 'Ieraksta teksts', required: true }
           },
           form: [
             { key: 'title', value: post.title },
@@ -262,15 +268,15 @@ function editPost(postId) {
                 updateCsrfToken(response.csrfToken);
 
                 if (response.success) {
-                  Swal.fire('Updated', response.message, 'success');
+                  Swal.fire('Atjaunināts', response.message, 'success');
                   $('#edit_post_modal').modal('hide');
                   fetchAllPosts();
                 } else {
-                  Swal.fire('Error', response.message, 'error');
+                  Swal.fire('Kļūda', response.message, 'error');
                 }
               },
               error: function () {
-                Swal.fire('Error', 'Failed to update post.', 'error');
+                Swal.fire('Kļūda', 'Neizdevās atjaunināt ierakstu.', 'error');
               }
             });
           }
@@ -278,7 +284,7 @@ function editPost(postId) {
 
         $('#edit_post_form_container').append(`
           <div class="mt-4">
-            <button type="submit" class="btn btn-primary w-100">Update Post</button>
+          <button type="submit" class="btn btn-primary w-100">Atjaunināt ierakstu</button>
           </div>
         `);
 
@@ -295,11 +301,12 @@ function editPost(postId) {
 
         $('#edit_post_modal').modal('show');
       } else {
-        Swal.fire('Error', 'Failed to fetch post details.', 'error');
+        Swal.fire('Kļūda', response.message || 'Neizdevās ielādēt ieraksta informāciju.', 'error');
       }
     },
-    error: function () {
-      Swal.fire('Error', 'Failed to fetch post details.', 'error');
+    error: function (xhr) {
+      const response = xhr.responseJSON || {};
+      Swal.fire('Kļūda', response.message || 'Neizdevās ielādēt ieraksta informāciju.', 'error');
     }
   });
 }
@@ -307,13 +314,13 @@ function editPost(postId) {
 // ================= DELETE POST =================
 function deletePost(postId) {
   Swal.fire({
-    title: 'Are you sure?',
-    text: "You won't be able to revert this!",
+    title: 'Vai tiešām?',
+    text: "Šo darbību nevarēs atsaukt!",
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#d33',
     cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Yes, delete it!'
+    confirmButtonText: 'Jā, dzēst!'
   }).then((result) => {
     if (result.isConfirmed) {
       $.ajax({
@@ -326,14 +333,14 @@ function deletePost(postId) {
           updateCsrfToken(response.csrfToken);
 
           if (response.success) {
-            Swal.fire('Deleted!', response.message, 'success');
+            Swal.fire('Dzēsts!', response.message, 'success');
             fetchAllPosts();
           } else {
-            Swal.fire('Error', response.message, 'error');
+            Swal.fire('Kļūda', response.message, 'error');
           }
         },
         error: function () {
-          Swal.fire('Error', 'Failed to delete post.', 'error');
+          Swal.fire('Kļūda', 'Neizdevās dzēst ierakstu.', 'error');
         }
       });
     }
@@ -359,11 +366,11 @@ function likePost(postId) {
       if (response.success) {
         $(`#likes-${postId}`).text(response.likes);
       } else {
-        Swal.fire('Error', response.message, 'error');
+        Swal.fire('Kļūda', response.message, 'error');
       }
     },
     error: function() {
-      Swal.fire('Error', 'Failed to like post.', 'error');
+      Swal.fire('Kļūda', 'Neizdevās atzīmēt ierakstu.', 'error');
     }
   });
 }
@@ -372,46 +379,46 @@ function likePost(postId) {
 function openComments(postId) {
   $('#comment_post_id').val(postId);
   $('#commentText').val('');
-  $('#commentsList').html('Loading comments...');
+  $('#commentsList').html('Ielādē komentārus...');
 
   $.ajax({
     url: `<?= base_url('post/comments') ?>/${postId}`,
     method: 'GET',
     success: function(response) {
       if (response.success) {
-        renderComments(response.data, response.current_user_id);
+        renderComments(response.data, response.current_user_id, response.current_is_admin);
         $('#commentsModal').modal('show');
       }
     },
     error: function() {
-      Swal.fire('Error', 'Failed to load comments.', 'error');
+      Swal.fire('Kļūda', 'Neizdevās ielādēt komentārus.', 'error');
     }
   });
 }
 
-function renderComments(comments, currentUserId) {
+function renderComments(comments, currentUserId, currentIsAdmin) {
   if (comments.length === 0) {
-    $('#commentsList').html('<p>No comments yet.</p>');
+    $('#commentsList').html('<p>Komentāru vēl nav.</p>');
     return;
   }
 
   let html = '';
 
   comments.forEach(comment => {
-    const canDelete = String(comment.user_id) === String(currentUserId);
+    const canDelete = currentIsAdmin || String(comment.user_id) === String(currentUserId);
 
     html += `
       <div class="border rounded p-2 mb-2">
         <div class="d-flex justify-content-between align-items-start">
           <div>
-            <strong>${comment.user_name ?? 'Unknown user'}</strong>
+            <strong>${comment.user_name ?? 'Nezināms lietotājs'}</strong>
             <p class="mb-1">${comment.comment}</p>
             <small class="text-muted">${comment.created_at}</small>
           </div>
 
           ${
             canDelete
-              ? `<button class="btn btn-danger btn-sm" onclick="deleteComment(${comment.id})">Delete</button>`
+              ? `<button class="btn btn-danger btn-sm" onclick="deleteComment(${comment.id})">Dzēst</button>`
               : ''
           }
         </div>
@@ -427,7 +434,7 @@ function addComment() {
   const comment = $('#commentText').val();
 
   if (!comment.trim()) {
-    Swal.fire('Error', 'Comment cannot be empty.', 'error');
+    Swal.fire('Kļūda', 'Komentārs nevar būt tukšs.', 'error');
     return;
   }
 
@@ -451,11 +458,11 @@ function addComment() {
         openComments(postId);
         fetchAllPosts();
       } else {
-        Swal.fire('Error', response.message, 'error');
+        Swal.fire('Kļūda', response.message, 'error');
       }
     },
     error: function() {
-      Swal.fire('Error', 'Failed to add comment.', 'error');
+      Swal.fire('Kļūda', 'Neizdevās pievienot komentāru.', 'error');
     }
   });
 }
@@ -465,13 +472,13 @@ function deleteComment(commentId) {
   const postId = $('#comment_post_id').val();
 
   Swal.fire({
-    title: 'Delete comment?',
-    text: 'This cannot be undone.',
+    title: 'Dzēst komentāru?',
+    text: 'Šo darbību nevarēs atsaukt.',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#d33',
     cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Yes, delete it'
+    confirmButtonText: 'Jā, dzēst'
   }).then((result) => {
     if (result.isConfirmed) {
       $.ajax({
@@ -487,11 +494,11 @@ function deleteComment(commentId) {
             openComments(postId);
             fetchAllPosts();
           } else {
-            Swal.fire('Error', response.message, 'error');
+            Swal.fire('Kļūda', response.message, 'error');
           }
         },
         error: function(xhr) {
-          Swal.fire('Error', 'Failed to delete comment.', 'error');
+          Swal.fire('Kļūda', 'Neizdevās dzēst komentāru.', 'error');
         }
       });
     }
@@ -508,7 +515,7 @@ async function fetchAllPosts() {
 
     if (response.success) {
       if (response.data.length === 0) {
-        $('#show_posts').html('<p>No posts available.</p>');
+        $('#show_posts').html('<div class="ag-card">Ierakstu nav.</div>');
         return;
       }
 
@@ -532,69 +539,111 @@ async function fetchAllPosts() {
           images.forEach(image => {
             const imagePath = image.startsWith('/') ? image.substring(1) : image;
 
-            imagesHtml += `
-              <img src="<?= base_url() ?>/${imagePath}" 
-                   class="img-fluid mb-2 me-1" 
-                   alt="${post.title}" 
-                   style="max-width: 100px; max-height: 100px; object-fit: cover;" 
-                   loading="lazy">
-            `;
+            imagesHtml += `<img src="<?= base_url() ?>/${imagePath}" alt="${post.title}" loading="lazy">`;
           });
         } else {
-          imagesHtml = `
-            <img src="<?= base_url('uploads/default.jpg') ?>" 
-                 class="img-fluid mb-2" 
-                 alt="Default Image" 
-                 style="max-width: 100px; max-height: 100px; object-fit: cover;" 
-                 loading="lazy">
-          `;
+          imagesHtml = `<img src="<?= base_url('uploads/default.jpg') ?>" alt="Noklusējuma attēls" loading="lazy">`;
         }
 
+        const authorName = post.author_name || 'Nezināms lietotājs';
+        const authorInitials = authorName.substring(0, 2).toUpperCase();
+        const authorAvatar = post.author_image
+          ? `<img src="<?= base_url() ?>/${escapeHtml(post.author_image)}" alt="${escapeHtml(authorName)}">`
+          : escapeHtml(authorInitials);
+
         postsHtml += `
-          <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-              <div class="card-body">
-                <h5 class="card-title">${post.title}</h5>
-                <p class="card-text">${post.body.substring(0, 100)}...</p>
-                <p class="text-muted">Category: ${post.category ?? 'No category'}</p>
-
-                <div class="mb-2">
-                  ${imagesHtml}
-                </div>
-
-                <div class="d-flex flex-wrap gap-1">
-                  <button class="btn btn-warning btn-sm" onclick="editPost(${post.id})">Edit</button>
-                  <button class="btn btn-danger btn-sm" onclick="deletePost(${post.id})">Delete</button>
-
-                  <button class="btn btn-outline-danger btn-sm" onclick="likePost(${post.id})">
-                    ❤️ Like (<span id="likes-${post.id}">${post.likes_count ?? 0}</span>)
-                  </button>
-
-                  <button class="btn btn-outline-primary btn-sm" onclick="openComments(${post.id})">
-                    💬 Comments (${post.comments_count ?? 0})
-                  </button>
-                </div>
+          <article class="ag-card ag-post">
+            <div class="ag-post-head">
+              <span class="ag-avatar">${authorAvatar}</span>
+              <div class="ag-post-meta">
+                <h3>${escapeHtml(authorName)}</h3>
+                <p>${escapeHtml(post.category ?? 'Nav kategorijas')} • ${escapeHtml(post.created_at)}</p>
               </div>
-
-              <div class="card-footer text-muted">
-                Created At: ${post.created_at}
-              </div>
+              <button class="ag-icon-btn" type="button" title="Vairāk"><i data-lucide="ellipsis"></i></button>
             </div>
-          </div>
+
+            <h3 class="ag-post-title">${escapeHtml(post.title)}</h3>
+            <p class="ag-post-body">${escapeHtml(post.body)}</p>
+
+            <div class="ag-post-images">
+              ${imagesHtml}
+            </div>
+
+            <div class="ag-post-actions">
+              <button type="button" onclick="likePost(${post.id})">
+                <i data-lucide="thumbs-up"></i>
+                <span id="likes-${post.id}">${post.likes_count ?? 0}</span>
+              </button>
+
+              <button type="button" onclick="openComments(${post.id})">
+                <i data-lucide="message-square"></i>
+                <span>${post.comments_count ?? 0} komentāri</span>
+              </button>
+
+              <button type="button">
+                <i data-lucide="share-2"></i>
+                <span>Dalīties</span>
+              </button>
+
+              ${
+                post.can_manage
+                  ? `<div class="ag-post-admin">
+                      <button class="btn btn-outline-secondary btn-sm" onclick="editPost(${post.id})">Rediģēt</button>
+                      <button class="btn btn-danger btn-sm" onclick="deletePost(${post.id})">Dzēst</button>
+                    </div>`
+                  : ''
+              }
+            </div>
+          </article>
         `;
       });
 
       $('#show_posts').html(postsHtml);
+      if (window.lucide) {
+        lucide.createIcons();
+      }
     } else {
-      Swal.fire('Error', response.message, 'error');
+      Swal.fire('Kļūda', response.message, 'error');
     }
   } catch (error) {
-    Swal.fire('Error', 'Failed to fetch posts.', 'error');
+    Swal.fire('Kļūda', 'Neizdevās ielādēt ierakstus.', 'error');
   }
+}
+
+function fetchForumSidebar() {
+  $.ajax({
+    url: '<?= base_url('forum/fetch') ?>',
+    method: 'GET',
+    success: function(response) {
+      if (!response.success || response.data.length === 0) {
+        $('#forumSidebar').html('<div class="ag-muted">Diskusiju vēl nav.</div>');
+        return;
+      }
+
+      let html = '';
+      response.data.slice(0, 4).forEach(discussion => {
+        html += `
+          <div class="ag-trend">
+            <small>${discussion.category ?? 'Nav kategorijas'} • ${discussion.created_at}</small>
+            <h3>${discussion.title}</h3>
+          </div>
+        `;
+      });
+
+      $('#forumSidebar').html(html);
+    },
+    error: function() {
+      $('#forumSidebar').html('<div class="ag-muted">Neizdevās ielādēt diskusijas.</div>');
+    }
+  });
 }
 
 // ================= ADD POST FORM =================
 $(document).ready(function () {
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+
   let allSelectedFiles = [];
 
   $('#add_images_input').on('change', function (event) {
@@ -609,8 +658,8 @@ $(document).ready(function () {
       reader.onload = function (e) {
         const previewElement = `
           <div class="d-inline-block text-center me-2 mb-2" style="max-width: 120px;">
-            <img src="${e.target.result}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;" alt="New Image">
-            <button type="button" class="btn btn-danger btn-sm mt-1 delete-new-image-btn" data-index="${allSelectedFiles.length - 1}">Delete</button>
+            <img src="${e.target.result}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;" alt="Jauns attēls">
+            <button type="button" class="btn btn-danger btn-sm mt-1 delete-new-image-btn" data-index="${allSelectedFiles.length - 1}">Dzēst</button>
           </div>
         `;
 
@@ -636,19 +685,19 @@ $(document).ready(function () {
 
   $('#add_post_form_container').jsonForm({
     schema: {
-      title: { type: 'string', title: 'Post Title', required: true },
+      title: { type: 'string', title: 'Ieraksta virsraksts', required: true },
       category: {
         type: 'string',
-        title: 'Post Category',
+        title: 'Ieraksta kategorija',
         enum: [],
         required: true
       },
-      body: { type: 'string', title: 'Post Body', required: true }
+      body: { type: 'string', title: 'Ieraksta teksts', required: true }
     },
     form: [
-      { key: 'title', placeholder: 'Enter title' },
-      { key: 'category', type: 'select', placeholder: 'Select a category' },
-      { key: 'body', type: 'textarea', placeholder: 'Enter body' }
+      { key: 'title', placeholder: 'Ievadi virsrakstu' },
+      { key: 'category', type: 'select', placeholder: 'Izvēlies kategoriju' },
+      { key: 'body', type: 'textarea', placeholder: 'Ievadi tekstu' }
     ],
     onSubmit: function (errors, values) {
       if (errors) {
@@ -678,16 +727,16 @@ $(document).ready(function () {
           updateCsrfToken(response.csrfToken);
 
           if (response.success) {
-            Swal.fire('Added', response.message, 'success');
+            Swal.fire('Pievienots', response.message, 'success');
             fetchAllPosts();
             $('#add_post_modal').modal('hide');
             clearForm('add_post_form_container', 'add_image_previews', allSelectedFiles);
           } else {
-            Swal.fire('Error', response.message, 'error');
+            Swal.fire('Kļūda', response.message, 'error');
           }
         },
         error: function () {
-          Swal.fire('Error', 'Failed to add post.', 'error');
+          Swal.fire('Kļūda', 'Neizdevās pievienot ierakstu.', 'error');
         }
       });
     }
@@ -699,7 +748,7 @@ $(document).ready(function () {
       method: 'get',
       success: function (response) {
         if (response.success) {
-          let categoryOptions = '<option value="">Select a category</option>';
+          let categoryOptions = '<option value="">Izvēlies kategoriju</option>';
 
           response.data.forEach(category => {
             categoryOptions += `<option value="${category.id}">${category.category_name}</option>`;
@@ -718,6 +767,7 @@ $(document).ready(function () {
 
   fetchCategories();
   fetchAllPosts();
+  fetchForumSidebar();
 });
 
 function clearForm(formId, previewContainerId, fileArray) {

@@ -1,33 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lv">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register</title>
+  <title>Reģistrēties | AgriConnect</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="<?= base_url('css/agriconnect.css') ?>" rel="stylesheet">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Load jQuery -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script> <!-- Load underscore.js -->
   <script src="<?= base_url('js/jsonform.js') ?>"></script> <!-- Load jsonForm -->
 </head>
-<body class="bg-light">
-  <div class="container mt-5">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="card shadow">
-          <div class="card-header text-center bg-success text-white">
-            <h4>Register</h4>
+<body class="ag-auth">
+  <div class="ag-auth-card">
+    <div class="ag-auth-brand">
+      <h1>AgriConnect</h1>
+      <p>Mūsdienīgs lauksaimnieku tīkls</p>
+    </div>
+        <div class="ag-card">
+          <div class="text-center mb-4">
+            <h4 class="m-0">Izveidot kontu</h4>
           </div>
-          <div class="card-body">
             <form id="register_form_container">
               <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
             </form> <!-- Form will be rendered here -->
-          </div>
-          <div class="card-footer text-center">
-            <p>Already have an account? <a href="<?= base_url('auth/login') ?>" class="text-primary">Login here</a></p>
+          <div class="text-center mt-4">
+            <p>Jau ir konts? <a href="<?= base_url('auth/login') ?>" class="text-primary">Pieslēdzies šeit</a></p>
           </div>
         </div>
-      </div>
-    </div>
   </div>
 <script>
 $(document).ready(function () {
@@ -35,30 +34,30 @@ $(document).ready(function () {
         schema: {
             username: {
                 type: "string",
-                title: "Username",
+                title: "Lietotājvārds",
                 required: true
             },
             email: {
                 type: "string",
-                title: "Email",
+                title: "E-pasts",
                 required: true
             },
             password: {
                 type: "string",
-                title: "Password",
+                title: "Parole",
                 required: true
             }
         },
         form: [
-            { key: "username", placeholder: "Enter your username" },
-            { key: "email", placeholder: "Enter your email" },
-            { key: "password", type: "password", placeholder: "Enter your password" },
+            { key: "username", placeholder: "Ievadi lietotājvārdu" },
+            { key: "email", placeholder: "Ievadi e-pastu" },
+            { key: "password", type: "password", placeholder: "Ievadi paroli" },
             {
                 type: "actions",
                 items: [
                     {
                         type: "submit",
-                        title: "Register",
+                        title: "Reģistrēties",
                         htmlClass: "btn btn-primary w-100 mt-3"
                     }
                 ]
@@ -67,7 +66,7 @@ $(document).ready(function () {
         onSubmit: function (errors, values) {
             if (errors) {
                 console.log('Validation errors:', errors);
-                alert("Please fix the errors in the form.");
+                alert("Lūdzu, izlabo kļūdas formā.");
             } else {
                 console.log("Form submitted successfully:", values);
 
@@ -85,13 +84,13 @@ $(document).ready(function () {
                         if (response.success) {
                             window.location.href = '<?= base_url('auth/login') ?>';
                         } else {
-                            alert('Registration failed: ' + response.message);
+                            alert('Reģistrācija neizdevās: ' + response.message);
                         }
                     },
                     error: function (xhr, status, error) {
                         console.error('Error submitting form:', xhr.responseText || error);
                         const response = xhr.responseJSON || {};
-                        alert('An error occurred: ' + (response.message || 'Please try again.'));
+                        alert('Radās kļūda: ' + (response.message || 'Lūdzu, mēģini vēlreiz.'));
                     }
                 });
             }

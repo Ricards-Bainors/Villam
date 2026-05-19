@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\PostModel;
 use Config\Services as ConfigServices;
 use App\Models\CategoryModel;
+use App\Models\UserModel;
 
 class PostController extends BaseController {
     protected $postModel;
@@ -13,6 +14,30 @@ class PostController extends BaseController {
     public function __construct() {
         $this->postModel = new PostModel();
     }
+
+    private function currentUserId()
+    {
+        return session()->get('user_id');
+    }
+
+    private function isAdmin(): bool
+    {
+        return session()->get('username') === 'admin';
+    }
+
+    private function ownsPost(array $post): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $currentUserId = $this->currentUserId();
+
+        return !empty($currentUserId)
+            && isset($post['user_id'])
+            && (string) $post['user_id'] === (string) $currentUserId;
+    }
+
     public function index() {
         $data['posts'] = $this->postModel->findAll(); // Fetch all posts
         return view('index', $data);
@@ -31,7 +56,7 @@ class PostController extends BaseController {
             if (empty($title) || empty($category) || empty($body)) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'All fields are required.'
+                    'message' => 'Visi lauki ir obligāti.'
                 ]);
             }
 
@@ -48,6 +73,7 @@ class PostController extends BaseController {
             }
 
             $postData = [
+                'user_id' => $this->currentUserId(),
                 'title' => $title,
                 'category_id' => $category,
                 'body' => $body,
@@ -58,13 +84,13 @@ class PostController extends BaseController {
             if ($this->postModel->createPost($postData)) { 
                 return $this->response->setJSON([
                     'success' => true,
-                    'message' => 'Post added successfully.',
+                    'message' => 'Ieraksts veiksmīgi pievienots.',
                     'csrfToken' => csrf_hash()
                 ]);
             } else {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Failed to add post.',
+                    'message' => 'Neizdevās pievienot ierakstu.',
                     'csrfToken' => csrf_hash()
                 ]);
             }
@@ -72,7 +98,7 @@ class PostController extends BaseController {
             log_message('error', 'Error adding post: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'An error occurred while adding the post.',
+                'message' => 'Pievienojot ierakstu, radās kļūda.',
                 'csrfToken' => csrf_hash()
             ])->setStatusCode(500);
         }
@@ -88,6 +114,13 @@ class PostController extends BaseController {
         $categories = $categoryModel->findAll();
 
         if ($post) {
+            if (!$this->ownsPost($post)) {
+                return $this->response->setJSON([
+                    'error' => true,
+                    'message' => 'Tu vari rediģēt tikai savus ierakstus.'
+                ])->setStatusCode(403);
+            }
+
             // Decode the images field to ensure it's an array
             $post['images'] = json_decode($post['images'], true) ?? [];
 
@@ -101,7 +134,7 @@ class PostController extends BaseController {
         } else {
             return $this->response->setJSON([
                 'error' => true,
-                'message' => 'Post not found.'
+                'message' => 'Ieraksts nav atrasts.'
             ])->setStatusCode(404);
         }
     }
@@ -122,8 +155,26 @@ class PostController extends BaseController {
             if (empty($postId) || empty($title) || empty($category) || empty($body)) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Missing required fields.'
+                    'message' => 'Trūkst obligāto lauku.'
                 ])->setStatusCode(400);
+            }
+
+            $post = $this->postModel->find($postId);
+
+            if (!$post) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Ieraksts nav atrasts.',
+                    'csrfToken' => csrf_hash()
+                ])->setStatusCode(404);
+            }
+
+            if (!$this->ownsPost($post)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tu vari atjaunināt tikai savus ierakstus.',
+                    'csrfToken' => csrf_hash()
+                ])->setStatusCode(403);
             }
 
             // Initialize image paths
@@ -162,13 +213,13 @@ class PostController extends BaseController {
             if ($this->postModel->updatePost($postId, $updateData)) {
                 return $this->response->setJSON([
                     'success' => true,
-                    'message' => 'Post updated successfully.',
+                    'message' => 'Ieraksts veiksmīgi atjaunināts.',
                     'csrfToken' => csrf_hash()
                 ]);
             } else {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Failed to update the post.',
+                    'message' => 'Neizdevās atjaunināt ierakstu.',
                     'csrfToken' => csrf_hash()
                 ])->setStatusCode(500);
             }
@@ -176,7 +227,7 @@ class PostController extends BaseController {
             log_message('error', 'Error updating post: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'An error occurred while updating the post.',
+                'message' => 'Atjauninot ierakstu, radās kļūda.',
                 'csrfToken' => csrf_hash()
             ])->setStatusCode(500);
         }
@@ -191,7 +242,7 @@ class PostController extends BaseController {
         if (empty($postId)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Post ID is required.',
+                'message' => 'Ieraksta ID ir obligāts.',
                 'csrfToken' => csrf_hash()
             ]);
         }
@@ -252,6 +303,7 @@ class PostController extends BaseController {
         return $this->response->setJSON([
             'success' => true,
             'current_user_id' => session()->get('user_id'),
+            'current_is_admin' => $this->isAdmin(),
             'data' => $comments
         ]);
     }
@@ -265,7 +317,7 @@ class PostController extends BaseController {
         if (empty($postId) || empty($comment)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Comment is required.',
+                'message' => 'Komentārs ir obligāts.',
                 'csrfToken' => csrf_hash()
             ]);
         }
@@ -281,7 +333,7 @@ class PostController extends BaseController {
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Comment added.',
+            'message' => 'Komentārs pievienots.',
             'csrfToken' => csrf_hash()
         ]);
     }
@@ -300,17 +352,17 @@ class PostController extends BaseController {
         if (!$comment) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Comment not found.',
+                'message' => 'Komentārs nav atrasts.',
                 'csrfToken' => csrf_hash()
             ])->setStatusCode(404);
         }
 
         $currentUserId = session()->get('user_id');
 
-        if ($comment['user_id'] != $currentUserId) {
+        if (!$this->isAdmin() && $comment['user_id'] != $currentUserId) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'You can only delete your own comments.',
+                'message' => 'Tu vari dzēst tikai savus komentārus.',
                 'csrfToken' => csrf_hash()
             ])->setStatusCode(403);
         }
@@ -321,7 +373,7 @@ class PostController extends BaseController {
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Comment deleted.',
+            'message' => 'Komentārs dzēsts.',
             'csrfToken' => csrf_hash()
         ]);
     }
@@ -331,16 +383,34 @@ class PostController extends BaseController {
     public function delete($id = null)
     {
         try {
+            $post = $this->postModel->find($id);
+
+            if (!$post) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Ieraksts nav atrasts.',
+                    'csrfToken' => csrf_hash()
+                ])->setStatusCode(404);
+            }
+
+            if (!$this->ownsPost($post)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tu vari dzēst tikai savus ierakstus.',
+                    'csrfToken' => csrf_hash()
+                ])->setStatusCode(403);
+            }
+
             if ($this->postModel->deletePost($id)) {
                 return $this->response->setJSON([
                     'success' => true,
-                    'message' => 'Post deleted successfully.',
+                    'message' => 'Ieraksts veiksmīgi dzēsts.',
                     'csrfToken' => csrf_hash()
                 ]);
             } else {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Failed to delete post.',
+                    'message' => 'Neizdevās dzēst ierakstu.',
                     'csrfToken' => csrf_hash()
                 ])->setStatusCode(500);
             }
@@ -348,7 +418,7 @@ class PostController extends BaseController {
             log_message('error', 'Error deleting post: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'An error occurred while deleting the post.',
+                'message' => 'Dzēšot ierakstu, radās kļūda.',
                 'csrfToken' => csrf_hash()
             ])->setStatusCode(500);
         }
@@ -371,14 +441,14 @@ class PostController extends BaseController {
             } else {
                 return $this->response->setJSON([
                     'error' => true,
-                    'message' => 'Post not found.'
+                    'message' => 'Ieraksts nav atrasts.'
                 ])->setStatusCode(404);
             }
         } catch (\Exception $e) {
             log_message('error', 'Error fetching post details: ' . $e->getMessage());
             return $this->response->setJSON([
                 'error' => true,
-                'message' => 'An error occurred while fetching post details.'
+                'message' => 'Ielādējot ieraksta informāciju, radās kļūda.'
             ])->setStatusCode(500);
         }
     }
@@ -391,6 +461,7 @@ class PostController extends BaseController {
 
             foreach ($posts as &$post) {
                 $post['images'] = json_decode($post['images'], true) ?? [];
+                $post['can_manage'] = $this->ownsPost($post);
 
                 $post['likes_count'] = $db->table('post_likes')
                     ->where('post_id', $post['id'])
@@ -408,7 +479,7 @@ class PostController extends BaseController {
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Error fetching posts.',
+                'message' => 'Kļūda, ielādējot ierakstus.',
             ])->setStatusCode(500);
         }
     }
@@ -427,24 +498,56 @@ class PostController extends BaseController {
             log_message('error', 'Error fetching categories: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Error fetching categories.',
+                'message' => 'Kļūda, ielādējot kategorijas.',
             ])->setStatusCode(500);
         }
     }
 
     public function categories()
     {
-        return view('categories');
+        if (!$this->isAdmin()) {
+            return redirect()->to('/posts');
+        }
+
+        return view('categories', [
+            'is_admin' => $this->isAdmin(),
+        ]);
+    }
+
+    public function users()
+    {
+        if (!$this->isAdmin()) {
+            return redirect()->to('/posts');
+        }
+
+        return view('admin_users');
+    }
+
+    private function requireAdminJson()
+    {
+        if ($this->isAdmin()) {
+            return null;
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Šī darbība pieejama tikai administratoram.',
+            'csrfToken' => csrf_hash()
+        ])->setStatusCode(403);
     }
 
     public function add_category()
     {
+        if ($response = $this->requireAdminJson()) {
+            return $response;
+        }
+
         $categoryName = $this->request->getPost('category_name');
 
         if (empty($categoryName)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Category name is required.',
+                'message' => 'Kategorijas nosaukums ir obligāts.',
                 'csrfToken' => csrf_hash()
             ]);
         }
@@ -460,13 +563,13 @@ class PostController extends BaseController {
         if ($builder->insert($data)) {
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Category added successfully.',
+                'message' => 'Kategorija veiksmīgi pievienota.',
                 'csrfToken' => csrf_hash()
             ]);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to add category.',
+                'message' => 'Neizdevās pievienot kategoriju.',
                 'csrfToken' => csrf_hash()
             ]);
         }
@@ -474,19 +577,23 @@ class PostController extends BaseController {
 
     public function delete_category($id)
     {
+        if ($response = $this->requireAdminJson()) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $builder = $db->table('categories');
 
         if ($builder->delete(['id' => $id])) {
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Category deleted successfully.',
+                'message' => 'Kategorija veiksmīgi dzēsta.',
                 'csrfToken' => csrf_hash()
             ]);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to delete category.',
+                'message' => 'Neizdevās dzēst kategoriju.',
                 'csrfToken' => csrf_hash()
             ]);
         }
@@ -494,13 +601,17 @@ class PostController extends BaseController {
 
     public function update_category()
     {
+        if ($response = $this->requireAdminJson()) {
+            return $response;
+        }
+
         $id = $this->request->getPost('id');
         $categoryName = $this->request->getPost('category_name');
 
         if (empty($categoryName)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Category name is required.',
+                'message' => 'Kategorijas nosaukums ir obligāts.',
                 'csrfToken' => csrf_hash()
             ]);
         }
@@ -511,15 +622,182 @@ class PostController extends BaseController {
         if ($builder->update(['category_name' => $categoryName], ['id' => $id])) {
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Category updated successfully.',
+                'message' => 'Kategorija veiksmīgi atjaunināta.',
                 'csrfToken' => csrf_hash()
             ]);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to update category.',
+                'message' => 'Neizdevās atjaunināt kategoriju.',
                 'csrfToken' => csrf_hash()
             ]);
+        }
+    }
+
+    public function fetchUsers()
+    {
+        if ($response = $this->requireAdminJson()) {
+            return $response;
+        }
+
+        $userModel = new UserModel();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $userModel->getAllUsers(),
+            'csrfToken' => csrf_hash()
+        ]);
+    }
+
+    public function updateUser()
+    {
+        if ($response = $this->requireAdminJson()) {
+            return $response;
+        }
+
+        $id = (int) $this->request->getPost('id');
+        $username = trim((string) $this->request->getPost('username'));
+        $email = trim((string) $this->request->getPost('email'));
+        $password = (string) $this->request->getPost('password');
+
+        if (empty($id) || empty($username) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Lietotājvārds un derīgs e-pasts ir obligāti.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(400);
+        }
+
+        $data = [
+            'username' => $username,
+            'email' => $email,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        if ($password !== '') {
+            if (strlen($password) < 4) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Parolei jābūt vismaz 4 rakstzīmes garai.',
+                    'csrfToken' => csrf_hash()
+                ])->setStatusCode(400);
+            }
+
+            $data['password'] = password_hash($password, PASSWORD_DEFAULT);
+        }
+
+        $userModel = new UserModel();
+        $userModel->updateUser($id, $data);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Lietotāja dati veiksmīgi atjaunināti.',
+            'csrfToken' => csrf_hash()
+        ]);
+    }
+
+    public function deleteUser($id)
+    {
+        if ($response = $this->requireAdminJson()) {
+            return $response;
+        }
+
+        $id = (int) $id;
+
+        if (empty($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Lietotāja ID ir obligāts.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(400);
+        }
+
+        $userModel = new UserModel();
+        $user = $userModel->findUserById($id);
+
+        if (!$user) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Lietotājs nav atrasts.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(404);
+        }
+
+        if ((string) $user['username'] === 'admin' || (string) $id === (string) $this->currentUserId()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Administratora kontu nevar dzēst.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(400);
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $this->cleanupUserReferences($id);
+        $deleted = $userModel->deleteUser($id);
+
+        $db->transComplete();
+
+        if (!$deleted || $db->transStatus() === false) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Neizdevās dzēst lietotāju.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Lietotājs veiksmīgi dzēsts.',
+            'csrfToken' => csrf_hash()
+        ]);
+    }
+
+    private function cleanupUserReferences(int $userId): void
+    {
+        $db = \Config\Database::connect();
+
+        if ($db->tableExists('conversation_messages') && $db->tableExists('conversations')) {
+            $conversationIds = $db->table('conversations')
+                ->select('id')
+                ->groupStart()
+                    ->where('buyer_id', $userId)
+                    ->orWhere('seller_id', $userId)
+                ->groupEnd()
+                ->get()
+                ->getResultArray();
+
+            $conversationIds = array_column($conversationIds, 'id');
+
+            if (!empty($conversationIds)) {
+                $db->table('conversation_messages')
+                    ->whereIn('conversation_id', $conversationIds)
+                    ->delete();
+                $db->table('conversations')
+                    ->whereIn('id', $conversationIds)
+                    ->delete();
+            }
+        }
+
+        if ($db->tableExists('post_likes')) {
+            $db->table('post_likes')->where('user_id', $userId)->delete();
+        }
+
+        if ($db->tableExists('post_comments')) {
+            $db->table('post_comments')->where('user_id', $userId)->delete();
+        }
+
+        if ($db->tableExists('discussion_replies')) {
+            $db->table('discussion_replies')->where('user_id', $userId)->delete();
+        }
+
+        foreach (['posts', 'advertisements', 'discussions'] as $table) {
+            if ($db->tableExists($table)) {
+                $db->table($table)
+                    ->where('user_id', $userId)
+                    ->update(['user_id' => null]);
+            }
         }
     }
 }

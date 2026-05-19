@@ -11,14 +11,14 @@ class AuthFilter implements FilterInterface
     public function before(RequestInterface $request, $arguments = null)
     {
         $uri = service('uri');
-        $excludedRoutes = ['auth/login', 'auth/register'];
+        $excludedRoutes = ['auth/login', 'login', 'auth/register'];
 
         if (in_array($uri->getPath(), $excludedRoutes)) {
             return; // Allow access to these routes without authentication
         }
 
         if (!session()->get('isLoggedIn')) {
-            return redirect()->to('/auth/login');
+            return redirect()->to('/login');
         }
     }
 

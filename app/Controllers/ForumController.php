@@ -19,6 +19,21 @@ class ForumController extends BaseController
         return view('forum');
     }
 
+    private function isAdmin(): bool
+    {
+        return session()->get('username') === 'admin';
+    }
+
+    private function canManageDiscussion(array $discussion): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return !empty($discussion['user_id'])
+            && (string) $discussion['user_id'] === (string) session()->get('user_id');
+    }
+
     public function fetch()
     {
         $db = \Config\Database::connect();
@@ -30,6 +45,10 @@ class ForumController extends BaseController
 
         $data = $builder->get()->getResultArray();
 
+        foreach ($data as &$discussion) {
+            $discussion['can_manage'] = $this->canManageDiscussion($discussion);
+        }
+
         return $this->response->setJSON([
             'success' => true,
             'data' => $data
@@ -40,26 +59,28 @@ class ForumController extends BaseController
     {
         $title = $this->request->getPost('title');
         $body = $this->request->getPost('body');
-        $category = $this->request->getPost('category');
+        $category = $this->request->getPost('category_id');
 
         if (empty($title) || empty($body)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Title and body are required.',
+                'message' => 'Virsraksts un teksts ir obligāti.',
                 'csrfToken' => csrf_hash()
             ]);
         }
 
         $this->discussionModel->insert([
+            'user_id' => session()->get('user_id'),
             'title' => $title,
             'body' => $body,
             'category_id' => $category ?: null,
+            'status' => 'open',
             'created_at' => date('Y-m-d H:i:s')
         ]);
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Discussion created successfully.',
+            'message' => 'Diskusija veiksmīgi izveidota.',
             'csrfToken' => csrf_hash()
         ]);
     }
@@ -68,9 +89,100 @@ class ForumController extends BaseController
     {
         $discussion = $this->discussionModel->find($id);
 
+        if (!$discussion) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Diskusija nav atrasta.'
+            ])->setStatusCode(404);
+        }
+
+        $discussion['can_manage'] = $this->canManageDiscussion($discussion);
+
         return $this->response->setJSON([
             'success' => true,
             'data' => $discussion
+        ]);
+    }
+
+    public function update()
+    {
+        $id = $this->request->getPost('id');
+        $title = $this->request->getPost('title');
+        $body = $this->request->getPost('body');
+        $status = $this->request->getPost('status');
+
+        if (empty($id) || empty($title) || empty($body)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Virsraksts un teksts ir obligāti.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(400);
+        }
+
+        $discussion = $this->discussionModel->find($id);
+
+        if (!$discussion) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Diskusija nav atrasta.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->canManageDiscussion($discussion)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tu vari labot tikai savas diskusijas.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(403);
+        }
+
+        if (!in_array($status, ['open', 'closed'], true)) {
+            $status = 'open';
+        }
+
+        $this->discussionModel->update($id, [
+            'title' => $title,
+            'body' => $body,
+            'status' => $status,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Diskusija veiksmīgi atjaunināta.',
+            'csrfToken' => csrf_hash()
+        ]);
+    }
+
+    public function delete($id)
+    {
+        $discussion = $this->discussionModel->find($id);
+
+        if (!$discussion) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Diskusija nav atrasta.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->canManageDiscussion($discussion)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tu vari dzēst tikai savas diskusijas.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(403);
+        }
+
+        $db = \Config\Database::connect();
+        $db->table('discussion_replies')->where('discussion_id', $id)->delete();
+        $this->discussionModel->delete($id);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Diskusija veiksmīgi dzēsta.',
+            'csrfToken' => csrf_hash()
         ]);
     }
 
@@ -90,6 +202,7 @@ class ForumController extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'current_user_id' => session()->get('user_id'),
+            'current_is_admin' => $this->isAdmin(),
             'data' => $replies
         ]);
     }
@@ -103,7 +216,7 @@ class ForumController extends BaseController
         if (empty($discussionId) || empty($reply)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Reply cannot be empty.',
+                'message' => 'Atbilde nevar būt tukša.',
                 'csrfToken' => csrf_hash()
             ]);
         }
@@ -119,7 +232,7 @@ class ForumController extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Reply added.',
+            'message' => 'Atbilde pievienota.',
             'csrfToken' => csrf_hash()
         ]);
     }
@@ -136,15 +249,15 @@ class ForumController extends BaseController
         if (!$reply) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Reply not found.',
+                'message' => 'Atbilde nav atrasta.',
                 'csrfToken' => csrf_hash()
             ])->setStatusCode(404);
         }
 
-        if ($reply['user_id'] != session()->get('user_id')) {
+        if (!$this->isAdmin() && $reply['user_id'] != session()->get('user_id')) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'You can only delete your own replies.',
+                'message' => 'Tu vari dzēst tikai savas atbildes.',
                 'csrfToken' => csrf_hash()
             ])->setStatusCode(403);
         }
@@ -155,7 +268,7 @@ class ForumController extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Reply deleted.',
+            'message' => 'Atbilde dzēsta.',
             'csrfToken' => csrf_hash()
         ]);
     }

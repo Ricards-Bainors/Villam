@@ -1,106 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lv">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<?= csrf_hash() ?>">
 
-  <title>Advertisements</title>
+  <title>Sludinājumi | AgriConnect</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="<?= base_url('css/agriconnect.css') ?>" rel="stylesheet">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 
-<body>
-<div class="container my-4">
-
-  <div class="card shadow">
-    <a href="<?= base_url('/') ?>" class="btn btn-secondary">Back to Posts</a>
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h3 class="m-0">Marketplace / Advertisements</h3>
-      
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAdModal">Add Advertisement</button>
-    </div>
-
-    <div class="card-body">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <input type="text" id="searchInput" class="form-control" placeholder="Search advertisements...">
-        </div>
-      </div>
-
-      <div class="row" id="adsContainer">
-        <p>Loading advertisements...</p>
-      </div>
-    </div>
+<body class="ag-app">
+<header class="ag-topbar">
+  <a class="ag-brand" href="<?= base_url('posts') ?>">AgriConnect</a>
+  <label class="ag-search" aria-label="Meklēt sludinājumos">
+    <i data-lucide="search"></i>
+    <input type="search" id="searchInput" placeholder="Meklēt sludinājumus...">
+  </label>
+  <div class="ag-top-actions">
+    <a class="ag-icon-btn" href="<?= base_url('posts') ?>" title="Ziņu plūsma"><i data-lucide="rss"></i></a>
+    <a class="ag-icon-btn" href="<?= base_url('profile') ?>" title="Profils"><i data-lucide="circle-user-round"></i></a>
   </div>
+</header>
 
+<div class="ag-shell">
+  <aside class="ag-sidebar">
+    <div class="ag-sidebar-title">
+      <h2>AgriConnect</h2>
+      <p>Mūsdienīgs lauksaimnieku tīkls</p>
+    </div>
+
+    <nav class="ag-nav" aria-label="Galvenā navigācija">
+      <a href="<?= base_url('posts') ?>"><i data-lucide="rss"></i> Ziņu plūsma</a>
+      <a class="active" href="<?= base_url('advertisements') ?>"><i data-lucide="store"></i> Sludinājumi</a>
+      <a href="<?= base_url('messages') ?>"><i data-lucide="message-circle"></i> Sarakstes</a>
+      <a href="<?= base_url('forum') ?>"><i data-lucide="messages-square"></i> Forums</a>
+      <?php if (session()->get('username') === 'admin'): ?>
+        <a href="<?= base_url('categories') ?>"><i data-lucide="tags"></i> Kategorijas</a>
+        <a href="<?= base_url('admin/users') ?>"><i data-lucide="users-round"></i> Lietotāji</a>
+      <?php endif; ?>
+    </nav>
+  </aside>
+
+  <main class="ag-main">
+    <div class="ag-content-narrow">
+      <div class="ag-page-header">
+        <div>
+          <h1>Sludinājumi</h1>
+          <p>Pārlūko tehniku, materiālus un vietējos saimniecību piedāvājumus.</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAdModal">Pievienot sludinājumu</button>
+      </div>
+
+      <div class="ag-grid" id="adsContainer">
+        <div class="ag-card">Ielādē sludinājumus...</div>
+      </div>
+    </div>
+  </main>
 </div>
 
-<!-- Add Advertisement Modal -->
 <div class="modal fade" id="addAdModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-
       <div class="modal-header">
-        <h5 class="modal-title">Add Advertisement</h5>
+        <h5 class="modal-title">Pievienot sludinājumu</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
       <form id="addAdForm">
         <div class="modal-body">
-
           <div class="mb-3">
-            <label class="form-label">Title</label>
+            <label class="form-label">Virsraksts</label>
             <input type="text" name="title" class="form-control" required>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Description</label>
+            <label class="form-label">Apraksts</label>
             <textarea name="description" class="form-control" rows="4" required></textarea>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Price (€)</label>
+            <label class="form-label">Cena (EUR)</label>
             <input type="number" step="0.01" name="price" class="form-control" required>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Location</label>
-            <input type="text" name="location" class="form-control" placeholder="Example: Bauska">
+            <label class="form-label">Atrašanās vieta</label>
+            <input type="text" name="location" class="form-control" placeholder="Piemēram: Bauska">
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Images</label>
+            <label class="form-label">Attēli</label>
             <input type="file" id="adImages" class="form-control" multiple>
             <div id="imagePreview" class="d-flex flex-wrap gap-2 mt-2"></div>
           </div>
-
         </div>
 
         <div class="modal-footer">
-          <button type="submit" class="btn btn-success w-100">Save Advertisement</button>
+          <button type="submit" class="btn btn-success w-100">Saglabāt sludinājumu</button>
         </div>
       </form>
-
     </div>
   </div>
 </div>
 
-<!-- Details Modal -->
+<div class="modal fade" id="editAdModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Rediģēt sludinājumu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <form id="editAdForm">
+        <input type="hidden" name="id" id="editAdId">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Virsraksts</label>
+            <input type="text" name="title" id="editAdTitle" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Apraksts</label>
+            <textarea name="description" id="editAdDescription" class="form-control" rows="4" required></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Cena (EUR)</label>
+            <input type="number" step="0.01" name="price" id="editAdPrice" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Atrašanās vieta</label>
+            <input type="text" name="location" id="editAdLocation" class="form-control">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Statuss</label>
+            <select name="status" id="editAdStatus" class="form-select">
+              <option value="active">Pārdodas</option>
+              <option value="sold">Pārdots</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success w-100">Saglabāt izmaiņas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="adDetailModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-
       <div class="modal-header">
-        <h5 class="modal-title" id="detailTitle">Advertisement Details</h5>
+        <h5 class="modal-title" id="detailTitle">Sludinājuma informācija</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body" id="detailBody"></div>
-
     </div>
   </div>
 </div>
@@ -114,6 +179,28 @@ function updateCsrfToken(token) {
   if (token) {
     $('meta[name="csrf-token"]').attr('content', token);
   }
+}
+
+function statusLabel(status) {
+  return status === 'sold' ? 'Pārdots' : 'Pārdodas';
+}
+
+function statusBadge(status) {
+  if (status === 'sold') {
+    return '<p class="text-danger fw-bold fs-4 mb-2 text-uppercase">Pārdots</p>';
+  }
+
+  return '<p class="ag-muted mb-2">Pārdodas</p>';
+}
+
+function contactButton(ad) {
+  if (!ad.can_contact) {
+    return '';
+  }
+
+  return `<button class="btn btn-outline-primary btn-sm ms-2" onclick="startConversation(${ad.id})">
+    Sazināties
+  </button>`;
 }
 
 let selectedAdImages = [];
@@ -161,20 +248,48 @@ $('#addAdForm').on('submit', function(e) {
       updateCsrfToken(response.csrfToken);
 
       if (response.success) {
-        Swal.fire('Success', response.message, 'success');
-
+        Swal.fire('Izdevās', response.message, 'success');
         $('#addAdModal').modal('hide');
         $('#addAdForm')[0].reset();
         $('#imagePreview').empty();
         selectedAdImages = [];
-
         fetchAdvertisements();
       } else {
-        Swal.fire('Error', response.message, 'error');
+        Swal.fire('Kļūda', response.message, 'error');
       }
     },
     error: function() {
-      Swal.fire('Error', 'Failed to add advertisement.', 'error');
+      Swal.fire('Kļūda', 'Neizdevās pievienot sludinājumu.', 'error');
+    }
+  });
+});
+
+$('#editAdForm').on('submit', function(e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+  formData.append('<?= csrf_token() ?>', getCsrfToken());
+
+  $.ajax({
+    url: '<?= base_url('advertisements/update') ?>',
+    method: 'POST',
+    data: formData,
+    processData: false,
+    contentType: false,
+    success: function(response) {
+      updateCsrfToken(response.csrfToken);
+
+      if (response.success) {
+        Swal.fire('Saglabāts', response.message, 'success');
+        $('#editAdModal').modal('hide');
+        fetchAdvertisements();
+      } else {
+        Swal.fire('Kļūda', response.message, 'error');
+      }
+    },
+    error: function(xhr) {
+      const response = xhr.responseJSON || {};
+      Swal.fire('Kļūda', response.message || 'Neizdevās atjaunināt sludinājumu.', 'error');
     }
   });
 });
@@ -188,18 +303,18 @@ function fetchAdvertisements() {
         allAdvertisements = response.data;
         renderAdvertisements(allAdvertisements);
       } else {
-        $('#adsContainer').html('<p>Failed to load advertisements.</p>');
+        $('#adsContainer').html('<p>Neizdevās ielādēt sludinājumus.</p>');
       }
     },
     error: function() {
-      $('#adsContainer').html('<p>Error loading advertisements.</p>');
+      $('#adsContainer').html('<p>Kļūda, ielādējot sludinājumus.</p>');
     }
   });
 }
 
 function renderAdvertisements(ads) {
   if (ads.length === 0) {
-    $('#adsContainer').html('<p>No advertisements available.</p>');
+    $('#adsContainer').html('<div class="ag-card">Sludinājumu nav.</div>');
     return;
   }
 
@@ -212,31 +327,95 @@ function renderAdvertisements(ads) {
       image = '<?= base_url() ?>/' + ad.images[0];
     }
 
+    const manageButtons = ad.can_manage
+      ? `<div class="ag-post-admin mt-3">
+          <button class="btn btn-outline-secondary btn-sm" onclick="editAdvertisement(${ad.id})">Rediģēt</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAdvertisement(${ad.id})">Dzēst</button>
+        </div>`
+      : '';
+
     html += `
-      <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm">
-          <img src="${image}" class="card-img-top" style="height:200px;object-fit:cover;">
-
-          <div class="card-body">
-            <h5 class="card-title">${ad.title}</h5>
-            <p class="card-text">${ad.description.substring(0, 100)}...</p>
-            <p class="fw-bold text-success">${ad.price} €</p>
-            <p class="text-muted">${ad.location ?? ''}</p>
-
-            <button class="btn btn-primary btn-sm" onclick="viewAdvertisement(${ad.id})">
-              View Details
-            </button>
-          </div>
-
-          <div class="card-footer text-muted">
-            ${ad.created_at}
-          </div>
+      <article class="ag-card ag-ad-card">
+        <img src="${image}" alt="${ad.title}" loading="lazy">
+        <div class="ag-ad-body">
+          <h3 class="ag-post-title">${ad.title}</h3>
+          ${statusBadge(ad.status)}
+          <p>${ad.description.substring(0, 120)}...</p>
+          <p class="ag-price">${ad.price} EUR</p>
+          <p class="ag-muted">Pārdevējs: ${ad.seller_name ?? 'Nav norādīts'}</p>
+          <p class="ag-muted">${ad.location ?? ''} • ${ad.created_at}</p>
+          <button class="btn btn-primary btn-sm" onclick="viewAdvertisement(${ad.id})">Skatīt informāciju</button>
+          ${contactButton(ad)}
+          ${manageButtons}
         </div>
-      </div>
+      </article>
     `;
   });
 
   $('#adsContainer').html(html);
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+function editAdvertisement(id) {
+  $.ajax({
+    url: `<?= base_url('advertisements/detail') ?>/${id}`,
+    method: 'GET',
+    success: function(response) {
+      if (response.success) {
+        const ad = response.data;
+        $('#editAdId').val(ad.id);
+        $('#editAdTitle').val(ad.title);
+        $('#editAdDescription').val(ad.description);
+        $('#editAdPrice').val(ad.price);
+        $('#editAdLocation').val(ad.location ?? '');
+        $('#editAdStatus').val(ad.status === 'sold' ? 'sold' : 'active');
+        $('#editAdModal').modal('show');
+      }
+    },
+    error: function(xhr) {
+      const response = xhr.responseJSON || {};
+      Swal.fire('Kļūda', response.message || 'Neizdevās ielādēt sludinājumu.', 'error');
+    }
+  });
+}
+
+function deleteAdvertisement(id) {
+  Swal.fire({
+    title: 'Dzēst sludinājumu?',
+    text: 'Šo darbību nevarēs atsaukt.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Jā, dzēst',
+    cancelButtonText: 'Atcelt'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      $.ajax({
+        url: `<?= base_url('advertisements/delete') ?>/${id}`,
+        method: 'DELETE',
+        data: {
+          '<?= csrf_token() ?>': getCsrfToken()
+        },
+        success: function(response) {
+          updateCsrfToken(response.csrfToken);
+
+          if (response.success) {
+            Swal.fire('Dzēsts', response.message, 'success');
+            fetchAdvertisements();
+          } else {
+            Swal.fire('Kļūda', response.message, 'error');
+          }
+        },
+        error: function(xhr) {
+          const response = xhr.responseJSON || {};
+          Swal.fire('Kļūda', response.message || 'Neizdevās dzēst sludinājumu.', 'error');
+        }
+      });
+    }
+  });
 }
 
 function viewAdvertisement(id) {
@@ -252,15 +431,15 @@ function viewAdvertisement(id) {
         if (Array.isArray(ad.images) && ad.images.length > 0) {
           ad.images.forEach(img => {
             imagesHtml += `
-              <img src="<?= base_url() ?>/${img}" 
-                   class="img-fluid mb-2 me-2" 
+              <img src="<?= base_url() ?>/${img}"
+                   class="img-fluid mb-2 me-2"
                    style="max-width:180px;max-height:180px;object-fit:cover;">
             `;
           });
         } else {
           imagesHtml = `
-            <img src="<?= base_url('uploads/default.jpg') ?>" 
-                 class="img-fluid mb-2" 
+            <img src="<?= base_url('uploads/default.jpg') ?>"
+                 class="img-fluid mb-2"
                  style="max-width:180px;">
           `;
         }
@@ -270,17 +449,46 @@ function viewAdvertisement(id) {
         $('#detailBody').html(`
           <div class="mb-3">${imagesHtml}</div>
           <h4>${ad.title}</h4>
+          ${statusBadge(ad.status)}
           <p>${ad.description}</p>
-          <p><strong>Price:</strong> ${ad.price} €</p>
-          <p><strong>Location:</strong> ${ad.location ?? 'Not specified'}</p>
-          <p><strong>Created:</strong> ${ad.created_at}</p>
+          <p><strong>Cena:</strong> ${ad.price} EUR</p>
+          <p><strong>Atrašanās vieta:</strong> ${ad.location ?? 'Nav norādīta'}</p>
+          <p><strong>Pārdevējs:</strong> ${ad.seller_name ?? 'Nav norādīts'}</p>
+          <p><strong>Izveidots:</strong> ${ad.created_at}</p>
+          ${contactButton(ad)}
         `);
 
         $('#adDetailModal').modal('show');
       }
     },
     error: function() {
-      Swal.fire('Error', 'Failed to load advertisement details.', 'error');
+      Swal.fire('Kļūda', 'Neizdevās ielādēt sludinājuma informāciju.', 'error');
+    }
+  });
+}
+
+function startConversation(adId) {
+  $.ajax({
+    url: `<?= base_url('messages/start') ?>/${adId}`,
+    method: 'POST',
+    data: {
+      '<?= csrf_token() ?>': getCsrfToken()
+    },
+    success: function(response) {
+      updateCsrfToken(response.csrfToken);
+
+      if (response.success) {
+        window.location.href = `<?= base_url('messages') ?>?conversation=${response.conversation_id}`;
+      } else {
+        Swal.fire('Kļūda', response.message || 'Neizdevās sākt saraksti.', 'error');
+      }
+    },
+    error: function(xhr) {
+      const response = xhr.responseJSON || {};
+      if (response.csrfToken) {
+        updateCsrfToken(response.csrfToken);
+      }
+      Swal.fire('Kļūda', response.message || 'Neizdevās sākt saraksti.', 'error');
     }
   });
 }
@@ -292,6 +500,7 @@ $('#searchInput').on('keyup', function() {
     return (
       ad.title.toLowerCase().includes(keyword) ||
       ad.description.toLowerCase().includes(keyword) ||
+      statusLabel(ad.status).toLowerCase().includes(keyword) ||
       String(ad.price).includes(keyword) ||
       (ad.location && ad.location.toLowerCase().includes(keyword))
     );
@@ -301,6 +510,9 @@ $('#searchInput').on('keyup', function() {
 });
 
 $(document).ready(function() {
+  if (window.lucide) {
+    lucide.createIcons();
+  }
   fetchAdvertisements();
 });
 </script>

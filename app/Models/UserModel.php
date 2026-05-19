@@ -27,4 +27,35 @@ class UserModel
             ->get()
             ->getRowArray();
     }
+
+    public function findUserById(int $id): ?array
+    {
+        return $this->db->table($this->table)
+            ->where('id', $id)
+            ->get()
+            ->getRowArray();
+    }
+
+    public function getAllUsers(): array
+    {
+        return $this->db->table($this->table)
+            ->select('id, username, email, profile_image, created_at, updated_at')
+            ->orderBy('id', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    public function updateUser(int $id, array $data): bool
+    {
+        return $this->db->table($this->table)
+            ->where('id', $id)
+            ->update($data);
+    }
+
+    public function deleteUser(int $id): bool
+    {
+        return $this->db->table($this->table)
+            ->where('id', $id)
+            ->delete();
+    }
 }

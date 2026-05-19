@@ -18,8 +18,21 @@ class PostModel extends Model {
     public function getAllPosts(): array
     {
         return $this->db->table($this->table)
+            ->select('posts.*, categories.category_name as category, users.username as author_name, users.profile_image as author_image')
+            ->join('categories', 'categories.id = posts.category_id', 'left')
+            ->join('users', 'users.id = posts.user_id', 'left')
+            ->orderBy('posts.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
+    }
+
+    public function getPostsByUserId(int $userId): array
+    {
+        return $this->db->table($this->table)
             ->select('posts.*, categories.category_name as category')
             ->join('categories', 'categories.id = posts.category_id', 'left')
+            ->where('posts.user_id', $userId)
+            ->orderBy('posts.created_at', 'DESC')
             ->get()
             ->getResultArray();
     }

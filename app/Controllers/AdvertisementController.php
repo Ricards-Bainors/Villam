@@ -20,15 +20,40 @@ class AdvertisementController extends BaseController
         return view('advertisements');
     }
 
+    private function currentUserId()
+    {
+        return session()->get('user_id');
+    }
+
+    private function isAdmin(): bool
+    {
+        return session()->get('username') === 'admin';
+    }
+
+    private function canManageAdvertisement(array $ad): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return !empty($ad['user_id'])
+            && (string) $ad['user_id'] === (string) $this->currentUserId();
+    }
+
     public function fetch()
     {
         $ads = $this->adModel
-            ->where('status', 'active')
-            ->orderBy('created_at', 'DESC')
+            ->select('advertisements.*, users.username AS seller_name')
+            ->join('users', 'users.id = advertisements.user_id', 'left')
+            ->orderBy('advertisements.created_at', 'DESC')
             ->findAll();
 
         foreach ($ads as &$ad) {
             $ad['images'] = json_decode($ad['images'], true) ?? [];
+            $ad['can_manage'] = $this->canManageAdvertisement($ad);
+            $ad['can_contact'] = !$ad['can_manage']
+                && !empty($ad['user_id'])
+                && ($ad['status'] ?? 'active') !== 'sold';
         }
 
         return $this->response->setJSON([
@@ -49,7 +74,7 @@ class AdvertisementController extends BaseController
         if (empty($title) || empty($description) || empty($price)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Title, description and price are required.',
+                'message' => 'Virsraksts, apraksts un cena ir obligāti.',
                 'csrfToken' => csrf_hash()
             ]);
         }
@@ -67,6 +92,7 @@ class AdvertisementController extends BaseController
         }
 
         $this->adModel->insert([
+            'user_id' => $this->currentUserId(),
             'title' => $title,
             'description' => $description,
             'price' => $price,
@@ -79,27 +105,128 @@ class AdvertisementController extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Advertisement added successfully.',
+            'message' => 'Sludinājums veiksmīgi pievienots.',
             'csrfToken' => csrf_hash()
         ]);
     }
 
     public function detail($id)
     {
+        $ad = $this->adModel
+            ->select('advertisements.*, users.username AS seller_name')
+            ->join('users', 'users.id = advertisements.user_id', 'left')
+            ->find($id);
+
+        if (!$ad) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sludinājums nav atrasts.'
+            ])->setStatusCode(404);
+        }
+
+        $ad['images'] = json_decode($ad['images'], true) ?? [];
+        $ad['can_manage'] = $this->canManageAdvertisement($ad);
+        $ad['can_contact'] = !$ad['can_manage']
+            && !empty($ad['user_id'])
+            && ($ad['status'] ?? 'active') !== 'sold';
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $ad
+        ]);
+    }
+
+    public function update()
+    {
+        $id = $this->request->getPost('id');
+        $title = $this->request->getPost('title');
+        $description = $this->request->getPost('description');
+        $price = $this->request->getPost('price');
+        $location = $this->request->getPost('location');
+        $status = $this->request->getPost('status');
+
+        if (empty($id) || empty($title) || empty($description) || empty($price)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Virsraksts, apraksts un cena ir obligāti.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(400);
+        }
+
+        if (!in_array($status, ['active', 'sold'], true)) {
+            $status = 'active';
+        }
+
         $ad = $this->adModel->find($id);
 
         if (!$ad) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Advertisement not found.'
+                'message' => 'Sludinājums nav atrasts.',
+                'csrfToken' => csrf_hash()
             ])->setStatusCode(404);
         }
 
-        $ad['images'] = json_decode($ad['images'], true) ?? [];
+        if (!$this->canManageAdvertisement($ad)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tu vari labot tikai savus sludinājumus.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(403);
+        }
+
+        $this->adModel->update($id, [
+            'title' => $title,
+            'description' => $description,
+            'price' => $price,
+            'location' => $location,
+            'status' => $status,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
 
         return $this->response->setJSON([
             'success' => true,
-            'data' => $ad
+            'message' => 'Sludinājums veiksmīgi atjaunināts.',
+            'csrfToken' => csrf_hash()
+        ]);
+    }
+
+    public function delete($id)
+    {
+        $ad = $this->adModel->find($id);
+
+        if (!$ad) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sludinājums nav atrasts.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->canManageAdvertisement($ad)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tu vari dzēst tikai savus sludinājumus.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(403);
+        }
+
+        $images = json_decode($ad['images'] ?? '[]', true) ?? [];
+
+        foreach ($images as $image) {
+            $imagePath = FCPATH . ltrim((string) $image, '/');
+
+            if (is_file($imagePath)) {
+                unlink($imagePath);
+            }
+        }
+
+        $this->adModel->delete($id);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Sludinājums veiksmīgi dzēsts.',
+            'csrfToken' => csrf_hash()
         ]);
     }
 }

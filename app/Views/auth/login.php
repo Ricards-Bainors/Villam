@@ -1,40 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lv">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Pieslēgties | AgriConnect</title>
     <!-- Include Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="<?= base_url('css/agriconnect.css') ?>" rel="stylesheet">
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card shadow">
-                    <div class="card-header text-center bg-primary text-white">
-                        <h4>Login</h4>
+<body class="ag-auth">
+    <div class="ag-auth-card">
+        <div class="ag-auth-brand">
+            <h1>AgriConnect</h1>
+            <p>Mūsdienīgs lauksaimnieku tīkls</p>
+        </div>
+        <div class="ag-card">
+                    <div class="text-center mb-4">
+                        <h4 class="m-0">Laipni lūdzam atpakaļ</h4>
                     </div>
-                    <div class="card-body">
                         <form id="login_form" method="POST" action="<?= base_url('auth/login') ?>">
                             <?= csrf_field() ?> <!-- Include CSRF token if enabled -->
                             <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required>
+                                <label for="username" class="form-label">Lietotājvārds</label>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Ievadi lietotājvārdu" required>
                             </div>
                             <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                                <label for="password" class="form-label">Parole</label>
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Ievadi paroli" required>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Login</button>
+                            <button type="submit" class="btn btn-primary w-100">Pieslēgties</button>
                         </form>
-                    </div>
-                    <div class="card-footer text-center">
-                        <p>Don't have an account? <a href="<?= base_url('auth/register') ?>" class="text-primary">Register here</a></p>
+                    <div class="text-center mt-4">
+                        <p>Nav konta? <a href="<?= base_url('auth/register') ?>" class="text-primary">Reģistrējies šeit</a></p>
                     </div>
                 </div>
-            </div>
-        </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -51,7 +50,7 @@
                 if (response.success) {
                     window.location.href = '<?= base_url('posts') ?>';
                 } else {
-                    alert(response.message || 'Login failed.');
+                    alert(response.message || 'Pieslēgšanās neizdevās.');
                 }
 
                 // Refresh CSRF token if returned
@@ -60,7 +59,7 @@
                 }
             },
             error: function (xhr) {
-                alert('Error: ' + xhr.status + ' ' + xhr.responseText);
+                alert('Kļūda: ' + xhr.status + ' ' + xhr.responseText);
             }
         });
     });

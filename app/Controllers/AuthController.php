@@ -35,7 +35,7 @@ class AuthController extends Controller
         if (!isset($data['username'], $data['email'], $data['password'])) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Missing required fields.'
+                'message' => 'Trūkst obligāto lauku.'
             ])->setStatusCode(400);
         }
 
@@ -49,7 +49,7 @@ class AuthController extends Controller
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to create user.'
+                'message' => 'Neizdevās izveidot lietotāju.'
             ])->setStatusCode(500);
         }
     }
@@ -96,7 +96,7 @@ class AuthController extends Controller
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Login successful',
+            'message' => 'Pieslēgšanās veiksmīga',
             'csrfToken' => csrf_hash() // optional
         ]);
     }
