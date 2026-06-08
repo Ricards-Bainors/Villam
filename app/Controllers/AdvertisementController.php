@@ -150,7 +150,7 @@ class AdvertisementController extends BaseController
             }
         }
 
-        $this->adModel->insert($this->advertisementDataForExistingFields([
+        $adData = $this->advertisementDataForExistingFields([
             'user_id' => $this->currentUserId(),
             'title' => $title,
             'description' => $description,
@@ -160,11 +160,23 @@ class AdvertisementController extends BaseController
             'images' => json_encode($imagePaths),
             'status' => 'active',
             'created_at' => date('Y-m-d H:i:s')
-        ]));
+        ]);
+
+        $adId = $this->adModel->insert($adData);
+
+        if ($adId === false) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Neizdevās saglabāt sludinājumu.',
+                'errors' => $this->adModel->errors(),
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(500);
+        }
 
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Sludinājums veiksmīgi pievienots.',
+            'id' => $adId,
             'csrfToken' => csrf_hash()
         ]);
     }

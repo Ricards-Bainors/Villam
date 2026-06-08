@@ -181,6 +181,20 @@ function updateCsrfToken(token) {
   }
 }
 
+function ajaxMessage(xhr, fallback) {
+  const response = xhr.responseJSON || {};
+
+  if (response.message) {
+    return response.message;
+  }
+
+  if (xhr.responseText && xhr.responseText.trim().startsWith('<')) {
+    return 'Serveris atgrieza lapu, nevis JSON datus. Pārliecinies, ka esi pieslēdzies un maršruts ir pareizs.';
+  }
+
+  return fallback;
+}
+
 function statusLabel(status) {
   return status === 'sold' ? 'Pārdots' : 'Pārdodas';
 }
@@ -318,6 +332,7 @@ $('#addAdForm').on('submit', function(e) {
   $.ajax({
     url: '<?= base_url('advertisements/add') ?>',
     method: 'POST',
+    dataType: 'json',
     data: formData,
     processData: false,
     contentType: false,
@@ -335,8 +350,8 @@ $('#addAdForm').on('submit', function(e) {
         Swal.fire('Kļūda', response.message, 'error');
       }
     },
-    error: function() {
-      Swal.fire('Kļūda', 'Neizdevās pievienot sludinājumu.', 'error');
+    error: function(xhr) {
+      Swal.fire('Kļūda', ajaxMessage(xhr, 'Neizdevās pievienot sludinājumu.'), 'error');
     }
   });
 });
@@ -350,6 +365,7 @@ $('#editAdForm').on('submit', function(e) {
   $.ajax({
     url: '<?= base_url('advertisements/update') ?>',
     method: 'POST',
+    dataType: 'json',
     data: formData,
     processData: false,
     contentType: false,
@@ -375,6 +391,7 @@ function fetchAdvertisements() {
   $.ajax({
     url: '<?= base_url('advertisements/fetch') ?>',
     method: 'GET',
+    dataType: 'json',
     success: function(response) {
       if (response.success) {
         allAdvertisements = Array.isArray(response.data) ? response.data : [];
@@ -384,8 +401,7 @@ function fetchAdvertisements() {
       }
     },
     error: function(xhr) {
-      const response = xhr.responseJSON || {};
-      $('#adsContainer').html(`<div class="ag-card">${escapeHtml(response.message || 'Kļūda, ielādējot sludinājumus.')}</div>`);
+      $('#adsContainer').html(`<div class="ag-card">${escapeHtml(ajaxMessage(xhr, 'Kļūda, ielādējot sludinājumus.'))}</div>`);
     }
   });
 }
