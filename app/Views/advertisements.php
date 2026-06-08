@@ -299,6 +299,20 @@ function clearStaleModalState() {
   document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
 }
 
+function showAdvertisementsContainer() {
+  const container = document.getElementById('adsContainer');
+
+  if (!container) {
+    return;
+  }
+
+  container.style.removeProperty('display');
+
+  if (getComputedStyle(container).display === 'none') {
+    container.style.setProperty('display', 'grid', 'important');
+  }
+}
+
 ['pointerdown', 'click', 'keydown'].forEach(eventName => {
   document.addEventListener(eventName, function(event) {
     const trigger = event.target.closest('[data-bs-toggle="modal"]');
@@ -435,6 +449,8 @@ function fetchAdvertisements() {
     method: 'GET',
     dataType: 'json',
     success: function(response) {
+      showAdvertisementsContainer();
+
       if (response.success) {
         allAdvertisements = Array.isArray(response.data) ? response.data : [];
         renderAdvertisements(allAdvertisements);
@@ -443,6 +459,7 @@ function fetchAdvertisements() {
       }
     },
     error: function(xhr) {
+      showAdvertisementsContainer();
       $('#adsContainer').html(`<div class="ag-card">${escapeHtml(ajaxMessage(xhr, 'Kļūda, ielādējot sludinājumus.'))}</div>`);
     }
   });
@@ -450,6 +467,7 @@ function fetchAdvertisements() {
 
 function renderAdvertisements(ads) {
   clearStaleModalState();
+  showAdvertisementsContainer();
 
   if (ads.length === 0) {
     $('#adsContainer').html('<div class="ag-card">Sludinājumu nav.</div>');
