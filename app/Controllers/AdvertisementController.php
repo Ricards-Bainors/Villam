@@ -64,6 +64,10 @@ class AdvertisementController extends BaseController
 
     private function uploadExists(string $image): bool
     {
+        if (str_starts_with($image, 'data:image/')) {
+            return true;
+        }
+
         $filename = basename($image);
 
         if ($filename === '') {
@@ -177,7 +181,9 @@ class AdvertisementController extends BaseController
 
             foreach ($uploadedFiles['images'] as $file) {
                 if ($file->isValid() && !$file->hasMoved()) {
-                    if (!str_starts_with((string) $file->getMimeType(), 'image/')) {
+                    $mimeType = (string) $file->getMimeType();
+
+                    if (!str_starts_with($mimeType, 'image/')) {
                         return $this->response->setJSON([
                             'success' => false,
                             'message' => 'Lūdzu, augšupielādē tikai attēlu failus.',
@@ -185,20 +191,19 @@ class AdvertisementController extends BaseController
                         ])->setStatusCode(400);
                     }
 
+                    $tempPath = $file->getTempName();
+
+                    if (is_file($tempPath)) {
+                        $imagePaths[] = 'data:' . $mimeType . ';base64,' . base64_encode(file_get_contents($tempPath));
+                    }
+
                     $newName = $file->getRandomName();
                     $file->move($uploadPath, $newName);
                     $publicImagePath = $uploadPath . DIRECTORY_SEPARATOR . $newName;
 
-                    if (!$file->hasMoved() || !is_file($publicImagePath)) {
-                        return $this->response->setJSON([
-                            'success' => false,
-                            'message' => 'Neizdevās saglabāt sludinājuma attēlu.',
-                            'csrfToken' => csrf_hash()
-                        ])->setStatusCode(500);
+                    if ($file->hasMoved() && is_file($publicImagePath)) {
+                        copy($publicImagePath, $backupUploadPath . DIRECTORY_SEPARATOR . $newName);
                     }
-
-                    copy($publicImagePath, $backupUploadPath . DIRECTORY_SEPARATOR . $newName);
-                    $imagePaths[] = 'uploads/' . $newName;
                 }
             }
         }

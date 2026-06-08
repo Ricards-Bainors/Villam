@@ -241,7 +241,7 @@ function advertisementImageUrl(path) {
     return defaultAdImage;
   }
 
-  if (/^https?:\/\//i.test(imagePath)) {
+  if (/^(https?:\/\/|data:image\/)/i.test(imagePath)) {
     return imagePath;
   }
 
