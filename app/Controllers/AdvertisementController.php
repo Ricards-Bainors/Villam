@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\AdvertisementModel;
-use App\Models\CategoryModel;
 
 class AdvertisementController extends BaseController
 {
@@ -40,21 +39,73 @@ class AdvertisementController extends BaseController
             && (string) $ad['user_id'] === (string) $this->currentUserId();
     }
 
+    private function advertisementFieldExists(string $field): bool
+    {
+        return db_connect()->fieldExists($field, 'advertisements');
+    }
+
+    private function advertisementDataForExistingFields(array $data): array
+    {
+        return array_filter(
+            $data,
+            fn (string $field): bool => $this->advertisementFieldExists($field),
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    private function usersTableCanJoin(): bool
+    {
+        $db = db_connect();
+
+        return $db->tableExists('users')
+            && $db->fieldExists('id', 'users')
+            && $db->fieldExists('username', 'users');
+    }
+
+    private function prepareAdvertisement(array $ad): array
+    {
+        $images = $ad['images'] ?? '[]';
+        $ad['images'] = is_string($images) ? (json_decode($images, true) ?? []) : (array) $images;
+        $ad['status'] = $ad['status'] ?? 'active';
+        $ad['seller_name'] = $ad['seller_name'] ?? null;
+        $ad['can_manage'] = $this->canManageAdvertisement($ad);
+        $ad['can_contact'] = !$ad['can_manage']
+            && !empty($ad['user_id'])
+            && $ad['status'] !== 'sold';
+
+        return $ad;
+    }
+
     public function fetch()
     {
-        $ads = $this->adModel
-            ->select('advertisements.*, users.username AS seller_name')
-            ->join('users', 'users.id = advertisements.user_id', 'left')
-            ->orderBy('advertisements.created_at', 'DESC')
-            ->findAll();
+        $db = db_connect();
 
-        foreach ($ads as &$ad) {
-            $ad['images'] = json_decode($ad['images'], true) ?? [];
-            $ad['can_manage'] = $this->canManageAdvertisement($ad);
-            $ad['can_contact'] = !$ad['can_manage']
-                && !empty($ad['user_id'])
-                && ($ad['status'] ?? 'active') !== 'sold';
+        if (!$db->tableExists('advertisements')) {
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [],
+                'message' => 'Sludinājumu tabula vēl nav izveidota.'
+            ]);
         }
+
+        $query = $this->adModel->select('advertisements.*');
+
+        if ($this->advertisementFieldExists('user_id') && $this->usersTableCanJoin()) {
+            $query
+                ->select('users.username AS seller_name')
+                ->join('users', 'users.id = advertisements.user_id', 'left');
+        }
+
+        if ($this->advertisementFieldExists('created_at')) {
+            $query->orderBy('advertisements.created_at', 'DESC');
+        } else {
+            $query->orderBy('advertisements.id', 'DESC');
+        }
+
+        $ads = array_map(
+            fn (array $ad): array => $this->prepareAdvertisement($ad),
+            $query->findAll()
+        );
 
         return $this->response->setJSON([
             'success' => true,
@@ -64,6 +115,14 @@ class AdvertisementController extends BaseController
 
     public function add()
     {
+        if (!db_connect()->tableExists('advertisements')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sludinājumu tabula vēl nav izveidota.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(500);
+        }
+
         $title = $this->request->getPost('title');
         $description = $this->request->getPost('description');
         $price = $this->request->getPost('price');
@@ -91,7 +150,7 @@ class AdvertisementController extends BaseController
             }
         }
 
-        $this->adModel->insert([
+        $this->adModel->insert($this->advertisementDataForExistingFields([
             'user_id' => $this->currentUserId(),
             'title' => $title,
             'description' => $description,
@@ -101,7 +160,7 @@ class AdvertisementController extends BaseController
             'images' => json_encode($imagePaths),
             'status' => 'active',
             'created_at' => date('Y-m-d H:i:s')
-        ]);
+        ]));
 
         return $this->response->setJSON([
             'success' => true,
@@ -112,10 +171,22 @@ class AdvertisementController extends BaseController
 
     public function detail($id)
     {
-        $ad = $this->adModel
-            ->select('advertisements.*, users.username AS seller_name')
-            ->join('users', 'users.id = advertisements.user_id', 'left')
-            ->find($id);
+        if (!db_connect()->tableExists('advertisements')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sludinājums nav atrasts.'
+            ])->setStatusCode(404);
+        }
+
+        $query = $this->adModel->select('advertisements.*');
+
+        if ($this->advertisementFieldExists('user_id') && $this->usersTableCanJoin()) {
+            $query
+                ->select('users.username AS seller_name')
+                ->join('users', 'users.id = advertisements.user_id', 'left');
+        }
+
+        $ad = $query->find($id);
 
         if (!$ad) {
             return $this->response->setJSON([
@@ -124,20 +195,22 @@ class AdvertisementController extends BaseController
             ])->setStatusCode(404);
         }
 
-        $ad['images'] = json_decode($ad['images'], true) ?? [];
-        $ad['can_manage'] = $this->canManageAdvertisement($ad);
-        $ad['can_contact'] = !$ad['can_manage']
-            && !empty($ad['user_id'])
-            && ($ad['status'] ?? 'active') !== 'sold';
-
         return $this->response->setJSON([
             'success' => true,
-            'data' => $ad
+            'data' => $this->prepareAdvertisement($ad)
         ]);
     }
 
     public function update()
     {
+        if (!db_connect()->tableExists('advertisements')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sludinājumu tabula vēl nav izveidota.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(500);
+        }
+
         $id = $this->request->getPost('id');
         $title = $this->request->getPost('title');
         $description = $this->request->getPost('description');
@@ -175,14 +248,14 @@ class AdvertisementController extends BaseController
             ])->setStatusCode(403);
         }
 
-        $this->adModel->update($id, [
+        $this->adModel->update($id, $this->advertisementDataForExistingFields([
             'title' => $title,
             'description' => $description,
             'price' => $price,
             'location' => $location,
             'status' => $status,
             'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+        ]));
 
         return $this->response->setJSON([
             'success' => true,
@@ -193,6 +266,14 @@ class AdvertisementController extends BaseController
 
     public function delete($id)
     {
+        if (!db_connect()->tableExists('advertisements')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sludinājums nav atrasts.',
+                'csrfToken' => csrf_hash()
+            ])->setStatusCode(404);
+        }
+
         $ad = $this->adModel->find($id);
 
         if (!$ad) {

@@ -193,6 +193,46 @@ function statusBadge(status) {
   return '<p class="ag-muted mb-2">Pārdodas</p>';
 }
 
+const adBaseUrl = '<?= rtrim(base_url(), '/') ?>';
+const defaultAdImage = '<?= base_url('uploads/default.jpg') ?>';
+
+function asText(value, fallback = '') {
+  return value === null || value === undefined ? fallback : String(value);
+}
+
+function escapeHtml(value) {
+  return asText(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function truncateText(value, maxLength = 120) {
+  const text = asText(value);
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.substring(0, maxLength)}...`;
+}
+
+function advertisementImageUrl(path) {
+  const imagePath = asText(path).trim();
+
+  if (!imagePath) {
+    return defaultAdImage;
+  }
+
+  if (/^https?:\/\//i.test(imagePath)) {
+    return imagePath;
+  }
+
+  return `${adBaseUrl}/${imagePath.replace(/^\/+/, '')}`;
+}
+
 function contactButton(ad) {
   if (!ad.can_contact) {
     return '';
@@ -205,6 +245,43 @@ function contactButton(ad) {
 
 let selectedAdImages = [];
 let allAdvertisements = [];
+let lastAdvertisementModalTrigger = null;
+
+function focusFirstModalControl(modal) {
+  const focusable = modal.querySelector(
+    'input:not([type="hidden"]), textarea, select, button:not(.btn-close), [tabindex]:not([tabindex="-1"])'
+  );
+
+  if (focusable) {
+    focusable.focus();
+  }
+}
+
+$(document).on('click', '[data-bs-toggle="modal"]', function() {
+  lastAdvertisementModalTrigger = this;
+});
+
+$('.modal').on('show.bs.modal', function() {
+  if (!this.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+});
+
+$('.modal').on('shown.bs.modal', function() {
+  focusFirstModalControl(this);
+});
+
+$('.modal').on('hide.bs.modal', function() {
+  if (this.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+});
+
+$('.modal').on('hidden.bs.modal', function() {
+  if (lastAdvertisementModalTrigger && document.body.contains(lastAdvertisementModalTrigger)) {
+    lastAdvertisementModalTrigger.focus();
+  }
+});
 
 $('#adImages').on('change', function(event) {
   const files = event.target.files;
@@ -300,14 +377,15 @@ function fetchAdvertisements() {
     method: 'GET',
     success: function(response) {
       if (response.success) {
-        allAdvertisements = response.data;
+        allAdvertisements = Array.isArray(response.data) ? response.data : [];
         renderAdvertisements(allAdvertisements);
       } else {
-        $('#adsContainer').html('<p>Neizdevās ielādēt sludinājumus.</p>');
+        $('#adsContainer').html(`<div class="ag-card">${escapeHtml(response.message || 'Neizdevās ielādēt sludinājumus.')}</div>`);
       }
     },
-    error: function() {
-      $('#adsContainer').html('<p>Kļūda, ielādējot sludinājumus.</p>');
+    error: function(xhr) {
+      const response = xhr.responseJSON || {};
+      $('#adsContainer').html(`<div class="ag-card">${escapeHtml(response.message || 'Kļūda, ielādējot sludinājumus.')}</div>`);
     }
   });
 }
@@ -321,10 +399,15 @@ function renderAdvertisements(ads) {
   let html = '';
 
   ads.forEach(ad => {
-    let image = '<?= base_url('uploads/default.jpg') ?>';
+    const title = asText(ad.title, 'Bez virsraksta');
+    const description = asText(ad.description);
+    const location = asText(ad.location);
+    const sellerName = asText(ad.seller_name, 'Nav norādīts');
+    const createdAt = asText(ad.created_at);
+    let image = defaultAdImage;
 
     if (Array.isArray(ad.images) && ad.images.length > 0) {
-      image = '<?= base_url() ?>/' + ad.images[0];
+      image = advertisementImageUrl(ad.images[0]);
     }
 
     const manageButtons = ad.can_manage
@@ -336,14 +419,14 @@ function renderAdvertisements(ads) {
 
     html += `
       <article class="ag-card ag-ad-card">
-        <img src="${image}" alt="${ad.title}" loading="lazy">
+        <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" loading="lazy">
         <div class="ag-ad-body">
-          <h3 class="ag-post-title">${ad.title}</h3>
+          <h3 class="ag-post-title">${escapeHtml(title)}</h3>
           ${statusBadge(ad.status)}
-          <p>${ad.description.substring(0, 120)}...</p>
-          <p class="ag-price">${ad.price} EUR</p>
-          <p class="ag-muted">Pārdevējs: ${ad.seller_name ?? 'Nav norādīts'}</p>
-          <p class="ag-muted">${ad.location ?? ''} • ${ad.created_at}</p>
+          <p>${escapeHtml(truncateText(description))}</p>
+          <p class="ag-price">${escapeHtml(ad.price)} EUR</p>
+          <p class="ag-muted">Pārdevējs: ${escapeHtml(sellerName)}</p>
+          <p class="ag-muted">${escapeHtml(location)}${location && createdAt ? ' • ' : ''}${escapeHtml(createdAt)}</p>
           <button class="btn btn-primary btn-sm" onclick="viewAdvertisement(${ad.id})">Skatīt informāciju</button>
           ${contactButton(ad)}
           ${manageButtons}
@@ -431,30 +514,30 @@ function viewAdvertisement(id) {
         if (Array.isArray(ad.images) && ad.images.length > 0) {
           ad.images.forEach(img => {
             imagesHtml += `
-              <img src="<?= base_url() ?>/${img}"
+              <img src="${escapeHtml(advertisementImageUrl(img))}"
                    class="img-fluid mb-2 me-2"
                    style="max-width:180px;max-height:180px;object-fit:cover;">
             `;
           });
         } else {
           imagesHtml = `
-            <img src="<?= base_url('uploads/default.jpg') ?>"
+            <img src="${escapeHtml(defaultAdImage)}"
                  class="img-fluid mb-2"
                  style="max-width:180px;">
           `;
         }
 
-        $('#detailTitle').text(ad.title);
+        $('#detailTitle').text(asText(ad.title, 'Sludinājuma informācija'));
 
         $('#detailBody').html(`
           <div class="mb-3">${imagesHtml}</div>
-          <h4>${ad.title}</h4>
+          <h4>${escapeHtml(ad.title)}</h4>
           ${statusBadge(ad.status)}
-          <p>${ad.description}</p>
-          <p><strong>Cena:</strong> ${ad.price} EUR</p>
-          <p><strong>Atrašanās vieta:</strong> ${ad.location ?? 'Nav norādīta'}</p>
-          <p><strong>Pārdevējs:</strong> ${ad.seller_name ?? 'Nav norādīts'}</p>
-          <p><strong>Izveidots:</strong> ${ad.created_at}</p>
+          <p>${escapeHtml(ad.description)}</p>
+          <p><strong>Cena:</strong> ${escapeHtml(ad.price)} EUR</p>
+          <p><strong>Atrašanās vieta:</strong> ${escapeHtml(asText(ad.location, 'Nav norādīta'))}</p>
+          <p><strong>Pārdevējs:</strong> ${escapeHtml(asText(ad.seller_name, 'Nav norādīts'))}</p>
+          <p><strong>Izveidots:</strong> ${escapeHtml(ad.created_at)}</p>
           ${contactButton(ad)}
         `);
 
@@ -498,11 +581,11 @@ $('#searchInput').on('keyup', function() {
 
   const filtered = allAdvertisements.filter(ad => {
     return (
-      ad.title.toLowerCase().includes(keyword) ||
-      ad.description.toLowerCase().includes(keyword) ||
+      asText(ad.title).toLowerCase().includes(keyword) ||
+      asText(ad.description).toLowerCase().includes(keyword) ||
       statusLabel(ad.status).toLowerCase().includes(keyword) ||
       String(ad.price).includes(keyword) ||
-      (ad.location && ad.location.toLowerCase().includes(keyword))
+      asText(ad.location).toLowerCase().includes(keyword)
     );
   });
 

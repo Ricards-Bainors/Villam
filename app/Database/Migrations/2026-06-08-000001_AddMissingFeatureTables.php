@@ -66,6 +66,7 @@ class AddMissingFeatureTables extends Migration
     private function createAdvertisementsTable(): void
     {
         if ($this->db->tableExists('advertisements')) {
+            $this->syncAdvertisementsTable();
             return;
         }
 
@@ -86,6 +87,25 @@ class AddMissingFeatureTables extends Migration
         $this->forge->addForeignKey('user_id', 'users', 'id', 'CASCADE', 'SET NULL');
         $this->forge->addForeignKey('category_id', 'categories', 'id', 'CASCADE', 'SET NULL');
         $this->forge->createTable('advertisements', true);
+    }
+
+    private function syncAdvertisementsTable(): void
+    {
+        $columns = [
+            'user_id' => ['type' => 'INT', 'null' => true],
+            'category_id' => ['type' => 'INT', 'null' => true],
+            'location' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+            'images' => ['type' => 'TEXT', 'null' => true],
+            'status' => ['type' => 'VARCHAR', 'constraint' => 30, 'default' => 'active'],
+            'created_at' => ['type' => 'TIMESTAMP', 'null' => true],
+            'updated_at' => ['type' => 'TIMESTAMP', 'null' => true],
+        ];
+
+        foreach ($columns as $field => $definition) {
+            if (!$this->db->fieldExists($field, 'advertisements')) {
+                $this->forge->addColumn('advertisements', [$field => $definition]);
+            }
+        }
     }
 
     private function createDiscussionsTables(): void
