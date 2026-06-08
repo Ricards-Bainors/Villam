@@ -193,11 +193,33 @@ class Database extends Config
     {
         parent::__construct();
 
+        $this->default['hostname'] = $this->envValue('database_default_hostname', $this->default['hostname']);
+        $this->default['username'] = $this->envValue('database_default_username', $this->default['username']);
+        $this->default['password'] = $this->envValue('database_default_password', $this->default['password']);
+        $this->default['database'] = $this->envValue('database_default_database', $this->default['database']);
+        $this->default['DBDriver'] = $this->envValue('database_default_DBDriver', $this->default['DBDriver']);
+        $this->default['schema'] = $this->envValue(
+            'database_default_schema',
+            $this->envValue('database_deafult_schema', $this->default['schema'])
+        );
+        $this->default['port'] = (int) $this->envValue('database_default_port', $this->default['port']);
+
         // Ensure that we always set the database group to 'tests' if
         // we are currently running an automated test suite, so that
         // we don't overwrite live data on accident.
         if (ENVIRONMENT === 'testing') {
             $this->defaultGroup = 'tests';
         }
+    }
+
+    private function envValue(string $key, mixed $default): mixed
+    {
+        $value = env($key);
+
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        return $value;
     }
 }
