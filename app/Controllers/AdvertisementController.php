@@ -62,39 +62,10 @@ class AdvertisementController extends BaseController
             && $db->fieldExists('username', 'users');
     }
 
-    private function uploadExists(string $image): bool
-    {
-        if (str_starts_with($image, 'data:image/')) {
-            return true;
-        }
-
-        $filename = basename($image);
-
-        if ($filename === '') {
-            return false;
-        }
-
-        foreach ([
-            FCPATH . 'uploads' . DIRECTORY_SEPARATOR . $filename,
-            ROOTPATH . 'uploads' . DIRECTORY_SEPARATOR . $filename,
-            WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . $filename,
-        ] as $path) {
-            if (is_file($path)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function prepareAdvertisement(array $ad): array
     {
         $images = $ad['images'] ?? '[]';
-        $images = is_string($images) ? (json_decode($images, true) ?? []) : (array) $images;
-        $ad['images'] = array_values(array_filter(
-            $images,
-            fn ($image): bool => is_string($image) && $this->uploadExists($image)
-        ));
+        $ad['images'] = is_string($images) ? (json_decode($images, true) ?? []) : (array) $images;
         $ad['status'] = $ad['status'] ?? 'active';
         $ad['seller_name'] = $ad['seller_name'] ?? null;
         $ad['can_manage'] = $this->canManageAdvertisement($ad);
@@ -171,12 +142,9 @@ class AdvertisementController extends BaseController
 
         if (isset($uploadedFiles['images'])) {
             $uploadPath = FCPATH . 'uploads';
-            $backupUploadPath = WRITEPATH . 'uploads';
 
-            foreach ([$uploadPath, $backupUploadPath] as $path) {
-                if (!is_dir($path)) {
-                    mkdir($path, 0775, true);
-                }
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0775, true);
             }
 
             foreach ($uploadedFiles['images'] as $file) {
@@ -191,19 +159,18 @@ class AdvertisementController extends BaseController
                         ])->setStatusCode(400);
                     }
 
-                    $tempPath = $file->getTempName();
-
-                    if (is_file($tempPath)) {
-                        $imagePaths[] = 'data:' . $mimeType . ';base64,' . base64_encode(file_get_contents($tempPath));
-                    }
-
                     $newName = $file->getRandomName();
                     $file->move($uploadPath, $newName);
-                    $publicImagePath = $uploadPath . DIRECTORY_SEPARATOR . $newName;
 
-                    if ($file->hasMoved() && is_file($publicImagePath)) {
-                        copy($publicImagePath, $backupUploadPath . DIRECTORY_SEPARATOR . $newName);
+                    if (!$file->hasMoved()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Neizdevās saglabāt sludinājuma attēlu.',
+                            'csrfToken' => csrf_hash()
+                        ])->setStatusCode(500);
                     }
+
+                    $imagePaths[] = 'uploads/' . $newName;
                 }
             }
         }

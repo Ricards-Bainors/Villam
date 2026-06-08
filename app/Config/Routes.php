@@ -32,7 +32,6 @@ $routes->setAutoRoute(false);
 // We get a performance increase by specifying the default
 // route since we don't have to scan directories.
 $routes->get('/', 'AuthController::showLoginForm'); // Default route
-$routes->get('uploads/(:segment)', 'UploadController::show/$1');
 
 $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('users/search', 'UserController::search');
@@ -58,7 +57,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     $routes->get('advertisements', 'AdvertisementController::index');
     $routes->get('advertisements/fetch', 'AdvertisementController::fetch');
-    $routes->get('advertisements/image/(:segment)', 'UploadController::show/$1');
     $routes->post('advertisements/add', 'AdvertisementController::add');
     $routes->post('advertisements/update', 'AdvertisementController::update');
     $routes->delete('advertisements/delete/(:num)', 'AdvertisementController::delete/$1');
