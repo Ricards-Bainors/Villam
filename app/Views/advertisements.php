@@ -261,6 +261,18 @@ let selectedAdImages = [];
 let allAdvertisements = [];
 let lastAdvertisementModalTrigger = null;
 
+function blurActiveElement() {
+  const activeElement = document.activeElement;
+
+  if (
+    activeElement
+    && activeElement !== document.body
+    && typeof activeElement.blur === 'function'
+  ) {
+    activeElement.blur();
+  }
+}
+
 function focusFirstModalControl(modal) {
   const focusable = modal.querySelector(
     'input:not([type="hidden"]), textarea, select, button:not(.btn-close), [tabindex]:not([tabindex="-1"])'
@@ -271,13 +283,41 @@ function focusFirstModalControl(modal) {
   }
 }
 
-$(document).on('click', '[data-bs-toggle="modal"]', function() {
-  lastAdvertisementModalTrigger = this;
+function clearStaleModalState() {
+  if (document.querySelector('.modal.show')) {
+    return;
+  }
+
+  document.querySelectorAll('.ag-shell, .ag-topbar').forEach(element => {
+    element.removeAttribute('aria-hidden');
+    element.removeAttribute('inert');
+  });
+
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('padding-right');
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+}
+
+['pointerdown', 'click', 'keydown'].forEach(eventName => {
+  document.addEventListener(eventName, function(event) {
+    const trigger = event.target.closest('[data-bs-toggle="modal"]');
+
+    if (!trigger) {
+      return;
+    }
+
+    lastAdvertisementModalTrigger = trigger;
+
+    if (eventName !== 'keydown' || event.key === 'Enter' || event.key === ' ') {
+      blurActiveElement();
+    }
+  }, true);
 });
 
 $('.modal').on('show.bs.modal', function() {
   if (!this.contains(document.activeElement)) {
-    document.activeElement.blur();
+    blurActiveElement();
   }
 });
 
@@ -287,11 +327,13 @@ $('.modal').on('shown.bs.modal', function() {
 
 $('.modal').on('hide.bs.modal', function() {
   if (this.contains(document.activeElement)) {
-    document.activeElement.blur();
+    blurActiveElement();
   }
 });
 
 $('.modal').on('hidden.bs.modal', function() {
+  clearStaleModalState();
+
   if (lastAdvertisementModalTrigger && document.body.contains(lastAdvertisementModalTrigger)) {
     lastAdvertisementModalTrigger.focus();
   }
@@ -407,6 +449,8 @@ function fetchAdvertisements() {
 }
 
 function renderAdvertisements(ads) {
+  clearStaleModalState();
+
   if (ads.length === 0) {
     $('#adsContainer').html('<div class="ag-card">Sludinājumu nav.</div>');
     return;
@@ -458,6 +502,8 @@ function renderAdvertisements(ads) {
 }
 
 function editAdvertisement(id) {
+  blurActiveElement();
+
   $.ajax({
     url: `<?= base_url('advertisements/detail') ?>/${id}`,
     method: 'GET',
@@ -470,6 +516,7 @@ function editAdvertisement(id) {
         $('#editAdPrice').val(ad.price);
         $('#editAdLocation').val(ad.location ?? '');
         $('#editAdStatus').val(ad.status === 'sold' ? 'sold' : 'active');
+        blurActiveElement();
         $('#editAdModal').modal('show');
       }
     },
@@ -518,6 +565,8 @@ function deleteAdvertisement(id) {
 }
 
 function viewAdvertisement(id) {
+  blurActiveElement();
+
   $.ajax({
     url: `<?= base_url('advertisements/detail') ?>/${id}`,
     method: 'GET',
@@ -557,6 +606,7 @@ function viewAdvertisement(id) {
           ${contactButton(ad)}
         `);
 
+        blurActiveElement();
         $('#adDetailModal').modal('show');
       }
     },
