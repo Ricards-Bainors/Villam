@@ -141,10 +141,33 @@ class AdvertisementController extends BaseController
         $imagePaths = [];
 
         if (isset($uploadedFiles['images'])) {
+            $uploadPath = WRITEPATH . 'uploads';
+
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0775, true);
+            }
+
             foreach ($uploadedFiles['images'] as $file) {
                 if ($file->isValid() && !$file->hasMoved()) {
+                    if (!str_starts_with((string) $file->getMimeType(), 'image/')) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Lūdzu, augšupielādē tikai attēlu failus.',
+                            'csrfToken' => csrf_hash()
+                        ])->setStatusCode(400);
+                    }
+
                     $newName = $file->getRandomName();
-                    $file->move(FCPATH . 'uploads', $newName);
+                    $file->move($uploadPath, $newName);
+
+                    if (!$file->hasMoved()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Neizdevās saglabāt sludinājuma attēlu.',
+                            'csrfToken' => csrf_hash()
+                        ])->setStatusCode(500);
+                    }
+
                     $imagePaths[] = 'uploads/' . $newName;
                 }
             }
@@ -307,10 +330,17 @@ class AdvertisementController extends BaseController
         $images = json_decode($ad['images'] ?? '[]', true) ?? [];
 
         foreach ($images as $image) {
-            $imagePath = FCPATH . ltrim((string) $image, '/');
+            $relativeImage = ltrim((string) $image, '/');
+            $imagePaths = [
+                FCPATH . $relativeImage,
+                ROOTPATH . $relativeImage,
+                WRITEPATH . preg_replace('#^uploads/#', 'uploads/', $relativeImage),
+            ];
 
-            if (is_file($imagePath)) {
-                unlink($imagePath);
+            foreach ($imagePaths as $imagePath) {
+                if (is_file($imagePath)) {
+                    unlink($imagePath);
+                }
             }
         }
 
