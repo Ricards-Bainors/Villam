@@ -208,6 +208,7 @@ function statusBadge(status) {
 }
 
 const adBaseUrl = '<?= rtrim(base_url(), '/') ?>';
+const adImageBaseUrl = '<?= rtrim(base_url('advertisements/image'), '/') ?>';
 const defaultAdImage = '<?= base_url('uploads/default.jpg') ?>';
 
 function asText(value, fallback = '') {
@@ -244,7 +245,11 @@ function advertisementImageUrl(path) {
     return imagePath;
   }
 
-  return `${adBaseUrl}/${imagePath.replace(/^\/+/, '')}`;
+  return `${adImageBaseUrl}/${encodeURIComponent(imagePath.replace(/^\/+/, '').split('/').pop())}`;
+}
+
+function imageFallbackAttribute() {
+  return `onerror="this.onerror=null;this.src='${escapeHtml(defaultAdImage)}';"`;
 }
 
 function contactButton(ad) {
@@ -497,7 +502,7 @@ function renderAdvertisements(ads) {
 
     html += `
       <article class="ag-card ag-ad-card">
-        <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" loading="lazy">
+        <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" loading="lazy" ${imageFallbackAttribute()}>
         <div class="ag-ad-body">
           <h3 class="ag-post-title">${escapeHtml(title)}</h3>
           ${statusBadge(ad.status)}
@@ -598,6 +603,7 @@ function viewAdvertisement(id) {
           ad.images.forEach(img => {
             imagesHtml += `
               <img src="${escapeHtml(advertisementImageUrl(img))}"
+                   ${imageFallbackAttribute()}
                    class="img-fluid mb-2 me-2"
                    style="max-width:180px;max-height:180px;object-fit:cover;">
             `;
@@ -605,6 +611,7 @@ function viewAdvertisement(id) {
         } else {
           imagesHtml = `
             <img src="${escapeHtml(defaultAdImage)}"
+                 ${imageFallbackAttribute()}
                  class="img-fluid mb-2"
                  style="max-width:180px;">
           `;

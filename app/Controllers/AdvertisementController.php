@@ -62,10 +62,35 @@ class AdvertisementController extends BaseController
             && $db->fieldExists('username', 'users');
     }
 
+    private function uploadExists(string $image): bool
+    {
+        $filename = basename($image);
+
+        if ($filename === '') {
+            return false;
+        }
+
+        foreach ([
+            FCPATH . 'uploads' . DIRECTORY_SEPARATOR . $filename,
+            ROOTPATH . 'uploads' . DIRECTORY_SEPARATOR . $filename,
+            WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . $filename,
+        ] as $path) {
+            if (is_file($path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function prepareAdvertisement(array $ad): array
     {
         $images = $ad['images'] ?? '[]';
-        $ad['images'] = is_string($images) ? (json_decode($images, true) ?? []) : (array) $images;
+        $images = is_string($images) ? (json_decode($images, true) ?? []) : (array) $images;
+        $ad['images'] = array_values(array_filter(
+            $images,
+            fn ($image): bool => is_string($image) && $this->uploadExists($image)
+        ));
         $ad['status'] = $ad['status'] ?? 'active';
         $ad['seller_name'] = $ad['seller_name'] ?? null;
         $ad['can_manage'] = $this->canManageAdvertisement($ad);
@@ -141,10 +166,13 @@ class AdvertisementController extends BaseController
         $imagePaths = [];
 
         if (isset($uploadedFiles['images'])) {
-            $uploadPath = WRITEPATH . 'uploads';
+            $uploadPath = FCPATH . 'uploads';
+            $backupUploadPath = WRITEPATH . 'uploads';
 
-            if (!is_dir($uploadPath)) {
-                mkdir($uploadPath, 0775, true);
+            foreach ([$uploadPath, $backupUploadPath] as $path) {
+                if (!is_dir($path)) {
+                    mkdir($path, 0775, true);
+                }
             }
 
             foreach ($uploadedFiles['images'] as $file) {
@@ -159,8 +187,9 @@ class AdvertisementController extends BaseController
 
                     $newName = $file->getRandomName();
                     $file->move($uploadPath, $newName);
+                    $publicImagePath = $uploadPath . DIRECTORY_SEPARATOR . $newName;
 
-                    if (!$file->hasMoved()) {
+                    if (!$file->hasMoved() || !is_file($publicImagePath)) {
                         return $this->response->setJSON([
                             'success' => false,
                             'message' => 'Neizdevās saglabāt sludinājuma attēlu.',
@@ -168,6 +197,7 @@ class AdvertisementController extends BaseController
                         ])->setStatusCode(500);
                     }
 
+                    copy($publicImagePath, $backupUploadPath . DIRECTORY_SEPARATOR . $newName);
                     $imagePaths[] = 'uploads/' . $newName;
                 }
             }
