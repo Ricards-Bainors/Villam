@@ -28,6 +28,13 @@ class UserModel
             ->getRowArray();
     }
 
+    public function usernameExists(string $username): bool
+    {
+        return $this->db->table($this->table)
+            ->where('LOWER(username) = ' . $this->db->escape(strtolower($username)), null, false)
+            ->countAllResults() > 0;
+    }
+
     public function findUserById(int $id): ?array
     {
         return $this->db->table($this->table)

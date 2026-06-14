@@ -45,13 +45,15 @@ $(document).ready(function () {
             password: {
                 type: "string",
                 title: "Parole",
-                required: true
+                required: true,
+                minLength: 7,
+                pattern: "^(?=.*\\d).{7,}$"
             }
         },
         form: [
             { key: "username", placeholder: "Ievadi lietotājvārdu" },
             { key: "email", placeholder: "Ievadi e-pastu" },
-            { key: "password", type: "password", placeholder: "Ievadi paroli" },
+            { key: "password", type: "password", placeholder: "Vismaz 7 rakstzīmes un 1 cipars" },
             {
                 type: "actions",
                 items: [
@@ -68,6 +70,15 @@ $(document).ready(function () {
                 console.log('Validation errors:', errors);
                 alert("Lūdzu, izlabo kļūdas formā.");
             } else {
+                values.username = String(values.username || '').trim();
+                values.email = String(values.email || '').trim();
+                values.password = String(values.password || '');
+
+                if (values.password.length < 7 || !/\d/.test(values.password)) {
+                    alert("Parolei jābūt vismaz 7 rakstzīmes garai un jāsatur vismaz viens cipars.");
+                    return;
+                }
+
                 console.log("Form submitted successfully:", values);
 
                 // Get CSRF token from the page

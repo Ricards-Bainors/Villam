@@ -40,6 +40,30 @@ class AuthController extends Controller
         }
 
         $userModel = new \App\Models\UserModel();
+        $data['username'] = trim((string) $data['username']);
+        $data['email'] = trim((string) $data['email']);
+        $data['password'] = (string) $data['password'];
+
+        if ($data['username'] === '' || $data['email'] === '' || $data['password'] === '') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Visi lauki ir obligāti.'
+            ])->setStatusCode(400);
+        }
+
+        if (strlen($data['password']) < 7 || !preg_match('/\d/', $data['password'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Parolei jābūt vismaz 7 rakstzīmes garai un jāsatur vismaz viens cipars.'
+            ])->setStatusCode(400);
+        }
+
+        if ($userModel->usernameExists($data['username'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Šis lietotājvārds jau ir aizņemts.'
+            ])->setStatusCode(409);
+        }
 
         if ($userModel->createUser($data)) {
             return $this->response->setJSON([
