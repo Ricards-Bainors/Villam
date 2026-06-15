@@ -14,7 +14,7 @@ class AuthFilter implements FilterInterface
         $excludedRoutes = ['auth/login', 'login', 'auth/register'];
 
         if (in_array($uri->getPath(), $excludedRoutes)) {
-            return; // Allow access to these routes without authentication
+            return;
         }
 
         if (!session()->get('isLoggedIn')) {
@@ -24,6 +24,5 @@ class AuthFilter implements FilterInterface
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
-        // Nothing after
     }
 }

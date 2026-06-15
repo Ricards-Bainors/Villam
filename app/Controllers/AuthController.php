@@ -7,14 +7,12 @@ use CodeIgniter\Controller;
 
 class AuthController extends Controller
 {
-    // Handles GET requests to show the registration form
     public function showRegisterForm()
     {
         log_message('debug', 'Rendering registration form.');
-        return view('auth/register'); // Ensure this view exists
+        return view('auth/register');
     }
 
-    // Handles POST requests to process the registration form
     public function register()
     {
         if (!$this->request->isAJAX() || $this->request->getMethod(true) !== 'POST') {
@@ -26,7 +24,6 @@ class AuthController extends Controller
 
         $data = $this->request->getJSON(true);
 
-        // Remove CSRF token from data
         $csrfName = csrf_token();
         if (isset($data[$csrfName])) {
             unset($data[$csrfName]);
@@ -81,10 +78,10 @@ class AuthController extends Controller
     public function showLoginForm()
     {
         if (session()->get('isLoggedIn')) {
-            return redirect()->to('/posts'); // Redirect logged-in users to posts
+            return redirect()->to('/posts');
         }
 
-        return view('auth/login'); // Render the login page for unauthenticated users
+        return view('auth/login');
     }
 
     public function login()
@@ -111,7 +108,6 @@ class AuthController extends Controller
             ]);
         }
 
-        // Store session or token
         session()->set([
             'user_id' => $user['id'],
             'username' => $user['username'],
@@ -121,13 +117,13 @@ class AuthController extends Controller
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Pieslēgšanās veiksmīga',
-            'csrfToken' => csrf_hash() // optional
+            'csrfToken' => csrf_hash()
         ]);
     }
 
     public function logout()
     {
-        session()->destroy(); // Clear all session data
+        session()->destroy();
         return redirect()->to('/auth/login')->with('success', 'You have been logged out.');
     }
 

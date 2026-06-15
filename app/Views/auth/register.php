@@ -6,9 +6,9 @@
   <title>Reģistrēties | AgriConnect</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="<?= base_url('css/agriconnect.css') ?>" rel="stylesheet">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Load jQuery -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script> <!-- Load underscore.js -->
-  <script src="<?= base_url('js/jsonform.js') ?>"></script> <!-- Load jsonForm -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
+  <script src="<?= base_url('js/jsonform.js') ?>"></script>
 </head>
 <body class="ag-auth">
   <div class="ag-auth-card">
@@ -22,7 +22,7 @@
           </div>
             <form id="register_form_container">
               <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
-            </form> <!-- Form will be rendered here -->
+            </form>
           <div class="text-center mt-4">
             <p>Jau ir konts? <a href="<?= base_url('auth/login') ?>" class="text-primary">Pieslēdzies šeit</a></p>
           </div>
@@ -81,7 +81,6 @@ $(document).ready(function () {
 
                 console.log("Form submitted successfully:", values);
 
-                // Get CSRF token from the page
                 var csrfName = '<?= csrf_token() ?>';
                 var csrfHash = '<?= csrf_hash() ?>';
                 values[csrfName] = csrfHash;
@@ -90,7 +89,7 @@ $(document).ready(function () {
                     url: '<?= base_url('auth/register') ?>',
                     method: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify(values),   // Convert values to JSON string
+                    data: JSON.stringify(values),
                     success: function (response) {
                         if (response.success) {
                             window.location.href = '<?= base_url('auth/login') ?>';

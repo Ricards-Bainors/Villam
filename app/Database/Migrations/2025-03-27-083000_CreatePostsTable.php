@@ -33,8 +33,8 @@ class CreatePostsTable extends Migration {
                 'null' => true,
             ],
         ]);
-        $this->forge->addKey('id', true); // Primary key
-        $this->forge->addForeignKey('category_id', 'categories', 'id', 'CASCADE', 'SET NULL'); // Foreign key
+        $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('category_id', 'categories', 'id', 'CASCADE', 'SET NULL');
         $this->forge->createTable('posts');
     }
 

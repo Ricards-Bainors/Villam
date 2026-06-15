@@ -67,7 +67,6 @@
   </main>
 </div>
 
-<!-- Add Discussion Modal -->
 <div class="modal fade" id="addDiscussionModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -108,7 +107,6 @@
   </div>
 </div>
 
-<!-- Edit Discussion Modal -->
 <div class="modal fade" id="editDiscussionModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -151,7 +149,6 @@
   </div>
 </div>
 
-<!-- Detail Modal -->
 <div class="modal fade" id="discussionDetailModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">

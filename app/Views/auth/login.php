@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pieslēgties | AgriConnect</title>
-    <!-- Include Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?= base_url('css/agriconnect.css') ?>" rel="stylesheet">
 </head>
@@ -19,7 +18,7 @@
                         <h4 class="m-0">Laipni lūdzam atpakaļ</h4>
                     </div>
                         <form id="login_form" method="POST" action="<?= base_url('auth/login') ?>">
-                            <?= csrf_field() ?> <!-- Include CSRF token if enabled -->
+                            <?= csrf_field() ?>
                             <div class="mb-3">
                                 <label for="username" class="form-label">Lietotājvārds</label>
                                 <input type="text" class="form-control" id="username" name="username" placeholder="Ievadi lietotājvārdu" required>
@@ -43,7 +42,7 @@
 
         $.ajax({
             url: '<?= site_url('auth/login') ?>',
-            type: 'POST', // Ensure this is POST
+            type: 'POST',
             data: $(this).serialize(),
             dataType: 'json',
             success: function (response) {
@@ -53,7 +52,6 @@
                     alert(response.message || 'Pieslēgšanās neizdevās.');
                 }
 
-                // Refresh CSRF token if returned
                 if (response.csrfToken) {
                     $('input[name="<?= csrf_token() ?>"]').val(response.csrfToken);
                 }

@@ -20,7 +20,6 @@
 
 <body class="ag-app">
 
-<!-- Edit Post Modal -->
 <div class="modal fade" id="edit_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -36,7 +35,6 @@
   </div>
 </div>
 
-<!-- Comments Modal -->
 <div class="modal fade" id="commentsModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -133,7 +131,6 @@ function escapeHtml(value) {
 
 let allSelectedFilesEdit = [];
 
-// ================= EDIT POST =================
 function editPost(postId) {
   $.ajax({
     url: `<?= base_url('post/edit') ?>/${postId}`,
@@ -311,7 +308,6 @@ function editPost(postId) {
   });
 }
 
-// ================= DELETE POST =================
 function deletePost(postId) {
   Swal.fire({
     title: 'Vai tiešām?',
@@ -347,7 +343,6 @@ function deletePost(postId) {
   });
 }
 
-// ================= LIKE POST =================
 function likePost(postId) {
   const formData = new FormData();
 
@@ -375,7 +370,6 @@ function likePost(postId) {
   });
 }
 
-// ================= COMMENTS =================
 function openComments(postId) {
   $('#comment_post_id').val(postId);
   $('#commentText').val('');
@@ -505,7 +499,6 @@ function deleteComment(commentId) {
   });
 }
 
-// ================= FETCH POSTS =================
 async function fetchAllPosts() {
   try {
     const response = await $.ajax({
@@ -638,7 +631,6 @@ function fetchForumSidebar() {
   });
 }
 
-// ================= ADD POST FORM =================
 $(document).ready(function () {
   if (window.lucide) {
     lucide.createIcons();

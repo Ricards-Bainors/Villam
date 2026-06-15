@@ -39,11 +39,10 @@ class PostController extends BaseController {
     }
 
     public function index() {
-        $data['posts'] = $this->postModel->findAll(); // Fetch all posts
+        $data['posts'] = $this->postModel->findAll();
         return view('index', $data);
     }
 
-    // handle add new post ajax request
     public function add()
     {
         try {
@@ -52,7 +51,6 @@ class PostController extends BaseController {
             $body = $this->request->getPost('body');
             $uploadedFiles = $this->request->getFiles();
 
-            // Validate required fields
             if (empty($title) || empty($category) || empty($body)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -60,7 +58,6 @@ class PostController extends BaseController {
                 ]);
             }
 
-            // Process uploaded images
             $imagePaths = [];
             if (isset($uploadedFiles['images'])) {
                 foreach ($uploadedFiles['images'] as $file) {
@@ -104,7 +101,6 @@ class PostController extends BaseController {
         }
     }
 
-    // handle edit post ajax request
     public function edit($id = null)
     {
         $postModel = new PostModel();
@@ -121,7 +117,6 @@ class PostController extends BaseController {
                 ])->setStatusCode(403);
             }
 
-            // Decode the images field to ensure it's an array
             $post['images'] = json_decode($post['images'], true) ?? [];
 
             return $this->response->setJSON([
@@ -139,7 +134,6 @@ class PostController extends BaseController {
         }
     }
 
-    // handle update post ajax request
     public function update()
     {
         try {
@@ -151,7 +145,6 @@ class PostController extends BaseController {
             $imagesToDelete = json_decode($this->request->getPost('images_to_delete'), true);
             $newImages = $this->request->getFiles();
 
-            // Validate required fields
             if (empty($postId) || empty($title) || empty($category) || empty($body)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -177,21 +170,18 @@ class PostController extends BaseController {
                 ])->setStatusCode(403);
             }
 
-            // Initialize image paths
             $imagePaths = $existingImages ?? [];
 
-            // Delete specified existing images
             if (!empty($imagesToDelete)) {
                 foreach ($imagesToDelete as $image) {
                     $imagePath = FCPATH . $image;
                     if (file_exists($imagePath)) {
-                        unlink($imagePath); // Delete the image file
+                        unlink($imagePath);
                     }
                     $imagePaths = array_filter($imagePaths, fn($img) => $img !== $image);
                 }
             }
 
-            // Process new images
             if (!empty($newImages['new_images'])) {
                 foreach ($newImages['new_images'] as $file) {
                     if ($file->isValid() && !$file->hasMoved()) {
@@ -249,7 +239,6 @@ class PostController extends BaseController {
 
         $db = \Config\Database::connect();
 
-        // Temporary user id until session user is connected
         $userId = session()->get('user_id') ?? null;
 
         $existing = $db->table('post_likes')
@@ -379,7 +368,6 @@ class PostController extends BaseController {
     }
 
 
-    // handle delete post ajax request
     public function delete($id = null)
     {
         try {
@@ -424,7 +412,6 @@ class PostController extends BaseController {
         }
     }
 
-    //handle fetch post detail ajax request
     public function detail($id = null)
     {
         try {
@@ -433,7 +420,7 @@ class PostController extends BaseController {
             $post = $builder->where('id', $id)->get()->getRowArray();
 
             if ($post) {
-                $post['images'] = json_decode($post['images'], true); // Decode images field
+                $post['images'] = json_decode($post['images'], true);
                 return $this->response->setJSON([
                     'error' => false,
                     'message' => $post
@@ -487,8 +474,8 @@ class PostController extends BaseController {
     public function fetchCategories()
     {
         try {
-            $categoryModel = new \App\Models\CategoryModel(); // Ensure this model exists
-            $categories = $categoryModel->getAllCategories(); // Fetch all categories
+            $categoryModel = new \App\Models\CategoryModel();
+            $categories = $categoryModel->getAllCategories();
 
             return $this->response->setJSON([
                 'success' => true,

@@ -2,11 +2,8 @@
 
 namespace Config;
 
-// Create a new instance of our RouteCollection class.
 $routes = Services::routes();
 
-// Load the system's routing file first, so that the app and ENVIRONMENT
-// can override as needed.
 if (file_exists(SYSTEMPATH . 'Config/Routes.php')) {
     require SYSTEMPATH . 'Config/Routes.php';
 }
@@ -29,27 +26,24 @@ $routes->setAutoRoute(false);
  * --------------------------------------------------------------------
  */
 
-// We get a performance increase by specifying the default
-// route since we don't have to scan directories.
-$routes->get('/', 'AuthController::showLoginForm'); // Default route
+$routes->get('/', 'AuthController::showLoginForm');
 
 $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('users/search', 'UserController::search');
     $routes->get('users/search-json', 'UserController::searchJson');
 
-    $routes->get('posts', 'PostController::index'); // Display all posts
-    // Other protected routes...
-    $routes->get('post/fetch', 'PostController::fetch'); // Fetch posts (e.g., via AJAX)
-    $routes->post('post/add', 'PostController::add'); // Add a new post
-    $routes->get('post/edit/(:num)', 'PostController::edit/$1'); // Edit a post
-    $routes->delete('post/delete/(:num)', 'PostController::delete/$1'); // Delete a post
-    $routes->get('post/detail/(:num)', 'PostController::detail/$1'); // View post details
-    $routes->post('post/update', 'PostController::update'); // Update a post
-    $routes->get('categories', 'PostController::categories'); // Display categories
-    $routes->get('categories/fetch', 'PostController::fetchCategories'); // Fetch categories
-    $routes->post('categories/add', 'PostController::add_category'); // Add a category
-    $routes->post('categories/update', 'PostController::update_category'); // Update a category
-    $routes->post('categories/delete/(:num)', 'PostController::delete_category/$1'); // Delete a category
+    $routes->get('posts', 'PostController::index');
+    $routes->get('post/fetch', 'PostController::fetch');
+    $routes->post('post/add', 'PostController::add');
+    $routes->get('post/edit/(:num)', 'PostController::edit/$1');
+    $routes->delete('post/delete/(:num)', 'PostController::delete/$1');
+    $routes->get('post/detail/(:num)', 'PostController::detail/$1');
+    $routes->post('post/update', 'PostController::update');
+    $routes->get('categories', 'PostController::categories');
+    $routes->get('categories/fetch', 'PostController::fetchCategories');
+    $routes->post('categories/add', 'PostController::add_category');
+    $routes->post('categories/update', 'PostController::update_category');
+    $routes->post('categories/delete/(:num)', 'PostController::delete_category/$1');
     $routes->get('admin/users', 'PostController::users');
     $routes->get('admin/users/fetch', 'PostController::fetchUsers');
     $routes->post('admin/users/update', 'PostController::updateUser');
@@ -68,7 +62,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('messages/thread/(:num)', 'MessageController::thread/$1');
     $routes->post('messages/send', 'MessageController::send');
 
-    // Forum (Discussions)
     $routes->get('forum', 'ForumController::index');
     $routes->get('forum/fetch', 'ForumController::fetch');
     $routes->post('forum/add', 'ForumController::add');
@@ -90,18 +83,18 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->post('profile/password', 'ProfileController::updatePassword');
     $routes->post('profile/email', 'ProfileController::updateEmail');
 });
-$routes->get('auth/register', 'AuthController::showRegisterForm'); // Registration form
-$routes->post('auth/register', 'AuthController::register'); // Process registration
+$routes->get('auth/register', 'AuthController::showRegisterForm');
+$routes->post('auth/register', 'AuthController::register');
 
-$routes->get('auth/login', 'AuthController::showLoginForm'); // Login form
-$routes->post('auth/login', 'AuthController::login'); // Process login
+$routes->get('auth/login', 'AuthController::showLoginForm');
+$routes->post('auth/login', 'AuthController::login');
 $routes->get('login', 'AuthController::showLoginForm');
 $routes->post('login', 'AuthController::login');
 
-$routes->get('auth/logout', 'AuthController::logout'); // Logout
+$routes->get('auth/logout', 'AuthController::logout');
 
 $routes->set404Override(function () {
-    echo view('errors/404'); // Custom 404 error page
+    echo view('errors/404');
 });
 
 /*
